@@ -1,26 +1,35 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
-
-type Role = "buyer" | "seller" | "admin";
-type Unit = "g" | "kg" | "mL" | "L" | "unit";
-type ProductDimension = "weight" | "volume" | "count";
+import { useEffect, useMemo, useState } from "react";
+import {
+  convertToBaseUnit,
+  isValidStrongPassword,
+  unitsByDimension,
+  type Role,
+  type Unit,
+  type ProductDimension,
+} from "@/lib/units";
 
 type Product = {
-  id: number;
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sku: string;
   name: string;
   category: string;
   listedBy: string;
+  description: string;
   dimension: ProductDimension;
   baseUnit: Unit;
   pricePerBaseUnit: number;
   availableQuantity: number;
+  isActive: boolean;
 };
 
 type Order = {
-  id: number;
-  productId: number;
+  id: string;
+  productId: string;
   buyerName: string;
   sellerName: string;
   productName: string;
@@ -35,66 +44,51 @@ type Order = {
 
 const starterProducts: Product[] = [
   {
-    id: 1,
+    id: "seed-prod-1",
+    sellerId: "seed-seller-1",
+    sellerName: "Aasa Seller Desk",
+    sku: "CHEM-SODIUM-CHLORIDE-001",
     name: "Sodium Chloride",
     category: "Laboratory Chemical",
     listedBy: "Aasa Seller Desk",
+    description: "High purity laboratory grade salt.",
     dimension: "weight",
     baseUnit: "g",
     pricePerBaseUnit: 1.85,
     availableQuantity: 25000,
+    isActive: true,
   },
   {
-    id: 2,
+    id: "seed-prod-2",
+    sellerId: "seed-seller-1",
+    sellerName: "MedChem Seller Hub",
+    sku: "SOLV-ETHANOL-0999-001",
     name: "Ethanol 99.9%",
     category: "Solvent",
     listedBy: "MedChem Seller Hub",
+    description: "General purpose solvent for lab use.",
     dimension: "volume",
     baseUnit: "mL",
     pricePerBaseUnit: 0.72,
     availableQuantity: 18000,
+    isActive: true,
   },
   {
-    id: 3,
+    id: "seed-prod-3",
+    sellerId: "seed-seller-1",
+    sellerName: "Aasa Seller Desk",
+    sku: "PACK-VIAL-001",
     name: "Glass Vial Pack",
     category: "Consumable",
     listedBy: "Aasa Seller Desk",
+    description: "Pack of laboratory glass vials.",
     dimension: "count",
     baseUnit: "unit",
     pricePerBaseUnit: 24,
     availableQuantity: 420,
+    isActive: true,
   },
 ];
-
-const unitsByDimension: Record<ProductDimension, Unit[]> = {
-  weight: ["g", "kg"],
-  volume: ["mL", "L"],
-  count: ["unit"],
-};
-
-function convertToBaseUnit(quantity: number, selectedUnit: Unit, baseUnit: Unit) {
-  if (selectedUnit === baseUnit) {
-    return quantity;
-  }
-
-  if (selectedUnit === "kg" && baseUnit === "g") {
-    return quantity * 1000;
-  }
-
-  if (selectedUnit === "g" && baseUnit === "kg") {
-    return quantity / 1000;
-  }
-
-  if (selectedUnit === "L" && baseUnit === "mL") {
-    return quantity * 1000;
-  }
-
-  if (selectedUnit === "mL" && baseUnit === "L") {
-    return quantity / 1000;
-  }
-
-  return quantity;
-}
 
 function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -112,9 +106,11 @@ function formatQuantity(quantity: number) {
 
 function blankSellerProduct() {
   return {
+    sku: "",
     name: "",
     category: "",
     listedBy: "Aasa Seller Desk",
+    description: "",
     dimension: "weight" as ProductDimension,
     baseUnit: "g" as Unit,
     pricePerBaseUnit: "",
@@ -122,27 +118,11 @@ function blankSellerProduct() {
   };
 }
 
-function getRoleFromEmail(email: string): Role {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  if (normalizedEmail.includes("admin")) {
-    return "admin";
-  }
-
-  if (normalizedEmail.includes("seller")) {
-    return "seller";
-  }
-
-  return "buyer";
-}
-
-function isStrongPassword(password: string) {
-  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
-}
-
 export default function Home() {
   const [loggedInRole, setLoggedInRole] = useState<Role>("buyer");
+  const [loggedInName, setLoggedInName] = useState("Buyer");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -154,7 +134,7 @@ export default function Home() {
   const [buyerName, setBuyerName] = useState("Buyer");
   const [buyerSearch, setBuyerSearch] = useState("");
   const [adminSearch, setAdminSearch] = useState("");
-  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [sellerProduct, setSellerProduct] = useState(blankSellerProduct);
 
   const selectedProduct = products.find(
@@ -189,6 +169,86 @@ export default function Home() {
     };
   }, [numericQuantity, selectedProduct, selectedUnit]);
 
+  async function apiRequest<T>(input: RequestInfo | URL, init?: RequestInit) {
+    const response = await fetch(input, {
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    });
+
+    const payload = (await response.json().catch(() => ({}))) as T & {
+      error?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Something went wrong.");
+    }
+
+    return payload;
+  }
+
+  async function loadDashboardData(nextRole: Role) {
+    const [productsResponse, ordersResponse] = await Promise.all([
+      apiRequest<{ products: Product[] }>("/api/products"),
+      apiRequest<{ orders: Order[] }>("/api/orders"),
+    ]);
+
+    setProducts(productsResponse.products);
+    setOrders(ordersResponse.orders);
+
+    if (nextRole === "buyer" && productsResponse.products.length > 0) {
+      setSelectedProductId(productsResponse.products[0].id);
+      setSelectedUnit(unitsByDimension[productsResponse.products[0].dimension][0]);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      try {
+        const response = await fetch("/api/me", { credentials: "same-origin" });
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as {
+          user: { id: string; name: string; email: string; role: Role };
+        };
+
+        if (cancelled || !data.user) {
+          return;
+        }
+
+        setIsLoggedIn(true);
+        setLoggedInRole(data.user.role);
+        setLoggedInName(data.user.name);
+        setLoginEmail(data.user.email);
+        setBuyerName(data.user.name);
+        setSellerProduct((currentProduct) => ({
+          ...currentProduct,
+          listedBy: data.user.name,
+        }));
+        await loadDashboardData(data.user.role);
+      } catch {
+        // Leave the login screen visible if the session cannot be restored.
+      } finally {
+        if (!cancelled) {
+          setSessionChecked(true);
+        }
+      }
+    }
+
+    void restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -197,36 +257,55 @@ export default function Home() {
       return;
     }
 
-    if (!isStrongPassword(loginPassword)) {
+    if (!isValidStrongPassword(loginPassword)) {
       setLoginError(
         "Password must have upper case, lower case, a number, a special character, and at least 8 characters.",
       );
       return;
     }
 
-    setLoginError("");
-    const nextRole = getRoleFromEmail(loginEmail);
-    setLoggedInRole(nextRole);
-    setIsLoggedIn(true);
+    void (async () => {
+      try {
+        const data = await apiRequest<{
+          user: { id: string; name: string; email: string; role: Role };
+        }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({
+            email: loginEmail,
+            password: loginPassword,
+          }),
+        });
 
-    if (nextRole === "buyer") {
-      setBuyerName(loginEmail.split("@")[0] || "Buyer");
-    }
+        const nextRole = data.user.role;
 
-    if (nextRole === "seller") {
-      setSellerProduct((currentProduct) => ({
-        ...currentProduct,
-        listedBy: loginEmail.split("@")[0] || "Seller",
-      }));
-    }
+        setLoginError("");
+        setLoggedInRole(nextRole);
+        setLoggedInName(data.user.name);
+        setIsLoggedIn(true);
+        setBuyerName(data.user.name);
+        setSellerProduct((currentProduct) => ({
+          ...currentProduct,
+          listedBy: data.user.name,
+        }));
+        await loadDashboardData(nextRole);
+      } catch (error) {
+        setLoginError(error instanceof Error ? error.message : "Login failed.");
+      } finally {
+        setSessionChecked(true);
+      }
+    })();
   }
 
-  function logout() {
+  async function logout() {
+    await apiRequest("/api/auth/logout", { method: "POST" });
     setIsLoggedIn(false);
     setLoginEmail("");
     setLoginPassword("");
     setLoginError("");
     setLoggedInRole("buyer");
+    setLoggedInName("Buyer");
+    setProducts(starterProducts);
+    setOrders([]);
   }
 
   function chooseProduct(product: Product) {
@@ -243,68 +322,75 @@ export default function Home() {
     }));
   }
 
-  function addSellerProduct(event: FormEvent<HTMLFormElement>) {
+  async function addSellerProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const price = Number(sellerProduct.pricePerBaseUnit);
     const stock = Number(sellerProduct.availableQuantity);
 
-    if (!sellerProduct.name.trim() || price <= 0 || stock <= 0) {
+    if (!sellerProduct.sku.trim() || !sellerProduct.name.trim() || price <= 0 || stock <= 0) {
       return;
     }
 
-    const newProduct: Product = {
-      id: Date.now(),
-      name: sellerProduct.name.trim(),
-      category: sellerProduct.category.trim() || "General",
-      listedBy: sellerProduct.listedBy.trim() || "Seller",
-      dimension: sellerProduct.dimension,
-      baseUnit: sellerProduct.baseUnit,
-      pricePerBaseUnit: price,
-      availableQuantity: stock,
-    };
+    const payload = await apiRequest<{ id: string }>("/api/products", {
+      method: "POST",
+      body: JSON.stringify({
+        sku: sellerProduct.sku,
+        name: sellerProduct.name,
+        category: sellerProduct.category || "General",
+        description: sellerProduct.description || "",
+        dimension: sellerProduct.dimension,
+        baseUnit: sellerProduct.baseUnit,
+        availableQuantity: stock,
+        pricePerBaseUnit: price,
+        isActive: true,
+      }),
+    });
 
-    setProducts((currentProducts) => [newProduct, ...currentProducts]);
-    chooseProduct(newProduct);
+    void payload;
+
+    await loadDashboardData(loggedInRole);
     setSellerProduct({
       ...blankSellerProduct(),
-      listedBy: sellerProduct.listedBy,
+      listedBy: loggedInName,
     });
   }
 
-  function placeOrder() {
+  async function placeOrder() {
     if (!orderPreview.hasEnoughStock || numericQuantity <= 0) {
       return;
     }
 
-    const newOrder: Order = {
-      id: Date.now(),
-      productId: selectedProduct.id,
-      buyerName: buyerName.trim() || "Buyer",
-      sellerName: selectedProduct.listedBy,
-      productName: selectedProduct.name,
-      buyerQuantity: numericQuantity,
-      buyerUnit: selectedUnit,
-      convertedQuantity: orderPreview.convertedQuantity,
-      baseUnit: selectedProduct.baseUnit,
-      ratePerBaseUnit: selectedProduct.pricePerBaseUnit,
-      totalPrice: orderPreview.totalPrice,
-      status: "Placed",
-    };
-
-    updateProduct(selectedProduct.id, {
-      availableQuantity:
-        selectedProduct.availableQuantity - orderPreview.convertedQuantity,
+    await apiRequest("/api/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        productId: selectedProduct.id,
+        requestedQty: numericQuantity,
+        requestedUnit: selectedUnit,
+        buyerName: buyerName.trim() || "Buyer",
+      }),
     });
-    setOrders((currentOrders) => [newOrder, ...currentOrders]);
+
+    await loadDashboardData(loggedInRole);
   }
 
-  function updateProduct(productId: number, changes: Partial<Product>) {
-    setProducts((currentProducts) =>
-      currentProducts.map((product) =>
-        product.id === productId ? { ...product, ...changes } : product,
-      ),
-    );
+  async function updateProduct(productId: string, changes: Partial<Product>) {
+    await apiRequest(`/api/products/${productId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        sku: changes.sku,
+        name: changes.name,
+        category: changes.category,
+        description: changes.description,
+        dimension: changes.dimension,
+        baseUnit: changes.baseUnit,
+        availableQuantity: changes.availableQuantity,
+        pricePerBaseUnit: changes.pricePerBaseUnit,
+        isActive: changes.isActive,
+      }),
+    });
+
+    await loadDashboardData(loggedInRole);
   }
 
   function updateProductDimension(product: Product, dimension: ProductDimension) {
@@ -314,23 +400,37 @@ export default function Home() {
     });
   }
 
-  function deleteProduct(productId: number) {
-    setProducts((currentProducts) =>
-      currentProducts.filter((product) => product.id !== productId),
-    );
-    if (selectedProductId === productId) {
-      const nextProduct = products.find((product) => product.id !== productId);
-      if (nextProduct) {
-        chooseProduct(nextProduct);
-      }
-    }
+  async function deleteProduct(productId: string) {
+    await apiRequest(`/api/products/${productId}`, {
+      method: "DELETE",
+    });
+
+    await loadDashboardData(loggedInRole);
   }
 
-  function updateOrderStatus(orderId: number, status: Order["status"]) {
-    setOrders((currentOrders) =>
-      currentOrders.map((order) =>
-        order.id === orderId ? { ...order, status } : order,
-      ),
+  async function updateOrderStatus(orderId: string, status: Order["status"]) {
+    await apiRequest(`/api/orders/${orderId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+
+    await loadDashboardData(loggedInRole);
+  }
+
+  if (!sessionChecked) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel">
+          <div className="login-copy-block">
+            <p className="eyebrow">AasaMedChem Inventory</p>
+            <h1>Checking your secure session</h1>
+            <p className="login-copy">
+              We are restoring your dashboard and loading product data from the
+              database.
+            </p>
+          </div>
+        </section>
+      </main>
     );
   }
 
@@ -470,7 +570,7 @@ export default function Home() {
         </div>
         <div className="user-box">
           <span>{loginEmail}</span>
-          <strong>{loggedInRole} account</strong>
+          <strong>{loggedInName}</strong>
           <button onClick={logout} type="button">
             Logout
           </button>
@@ -524,12 +624,12 @@ export default function Home() {
                   onClick={() => chooseProduct(product)}
                   type="button"
                 >
-                  <span>
-                    <strong>{product.name}</strong>
-                    <small>
-                      {product.category} sold by {product.listedBy}
-                    </small>
-                  </span>
+                    <span>
+                      <strong>{product.name}</strong>
+                      <small>
+                      {product.sku} | {product.category} sold by {product.listedBy}
+                      </small>
+                    </span>
                   <span className="right-text">
                     <strong>
                       {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
@@ -569,7 +669,7 @@ export default function Home() {
                   onChange={(event) =>
                     chooseProduct(
                       products.find(
-                        (product) => product.id === Number(event.target.value),
+                        (product) => product.id === event.target.value,
                       ) ?? products[0],
                     )
                   }
@@ -682,14 +782,28 @@ export default function Home() {
                       name: event.target.value,
                     })
                   }
+                  />
+                </label>
+
+              <label>
+                SKU
+                <input
+                  placeholder="CHEM-POTASSIUM-BROMIDE-001"
+                  value={sellerProduct.sku}
+                  onChange={(event) =>
+                    setSellerProduct({
+                      ...sellerProduct,
+                      sku: event.target.value,
+                    })
+                  }
                 />
               </label>
 
-              <div className="quantity-row">
-                <label>
-                  Category
-                  <input
-                    placeholder="Chemical"
+                <div className="quantity-row">
+                  <label>
+                    Category
+                    <input
+                      placeholder="Chemical"
                     value={sellerProduct.category}
                     onChange={(event) =>
                       setSellerProduct({
@@ -749,15 +863,29 @@ export default function Home() {
                         {unit}
                       </option>
                     ))}
-                  </select>
-                </label>
-              </div>
+                    </select>
+                  </label>
+                </div>
 
-              <label>
-                Price per base unit in INR
-                <input
-                  min="0"
-                  placeholder="1.85"
+                <label>
+                  Description
+                  <input
+                    placeholder="Short product note"
+                    value={sellerProduct.description}
+                    onChange={(event) =>
+                      setSellerProduct({
+                        ...sellerProduct,
+                        description: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label>
+                  Price per base unit in INR
+                  <input
+                    min="0"
+                    placeholder="1.85"
                   step="0.0001"
                   type="number"
                   value={sellerProduct.pricePerBaseUnit}
@@ -838,18 +966,26 @@ export default function Home() {
                             updateProduct(product.id, { name: event.target.value })
                           }
                         />
-                      ) : (
-                        <>
-                          <strong>{product.name}</strong>
-                          <small>
-                            {product.category} sold by {product.listedBy}
-                          </small>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <strong>{product.name}</strong>
+                            <small>
+                            {product.sku} | {product.category} sold by {product.listedBy}
+                            </small>
+                          </>
+                        )}
                     </div>
 
                     {isEditing ? (
                       <div className="admin-edit-grid">
+                        <input
+                          value={product.sku}
+                          onChange={(event) =>
+                            updateProduct(product.id, {
+                              sku: event.target.value,
+                            })
+                          }
+                        />
                         <input
                           value={product.category}
                           onChange={(event) =>
@@ -907,6 +1043,17 @@ export default function Home() {
                             })
                           }
                         />
+                        <select
+                          value={String(product.isActive)}
+                          onChange={(event) =>
+                            updateProduct(product.id, {
+                              isActive: event.target.value === "true",
+                            })
+                          }
+                        >
+                          <option value="true">Active</option>
+                          <option value="false">Inactive</option>
+                        </select>
                       </div>
                     ) : (
                       <div className="admin-read-grid">
@@ -918,6 +1065,7 @@ export default function Home() {
                           {formatMoney(product.pricePerBaseUnit)} /{" "}
                           {product.baseUnit}
                         </span>
+                        <span>{product.isActive ? "Active" : "Inactive"}</span>
                       </div>
                     )}
 
@@ -967,7 +1115,7 @@ function OrderList({
   onStatusChange,
 }: {
   orders: Order[];
-  onStatusChange: (orderId: number, status: Order["status"]) => void;
+  onStatusChange: (orderId: string, status: Order["status"]) => void;
 }) {
   if (orders.length === 0) {
     return (

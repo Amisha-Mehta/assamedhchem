@@ -536,7 +536,7 @@ select {
 }
 
 .admin-edit-grid {
-  grid-template-columns: repeat(5, minmax(90px, 1fr));
+  grid-template-columns: repeat(7, minmax(90px, 1fr));
 }
 
 .small-button {

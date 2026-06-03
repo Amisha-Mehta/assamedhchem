@@ -11,10 +11,11 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 - Admin panel to search all products and sellers, create listings for any seller, edit or deactivate listings, and view all orders.
 - Flexible quantities in `g`, `kg`, `mL`, `L`, and `unit`.
 - Signed HTTP-only session cookie and PBKDF2 password hashes.
+- Neon-backed API routes for auth, products, and orders.
 
 ## Tech Stack And Design
 
-- Frontend and backend: Next.js App Router with React Server Components and Server Actions.
+- Frontend and backend: Next.js App Router with React Server Components and route handlers.
 - Database: Neon-hosted PostgreSQL via `@neondatabase/serverless`.
 - Auth: email/password login, PBKDF2 password hashes, signed cookie sessions.
 - Deployment: Vercel with `DATABASE_URL` and `AUTH_SECRET` environment variables.
@@ -97,8 +98,6 @@ Conversions happen in `app/actions.ts` during order placement:
 ```bash
 npm install
 copy .env.example .env
-npm run db:seed
-npm run dev
 ```
 
 Before `npm run db:seed`, put your Neon connection string and secret in `.env`:
@@ -106,6 +105,13 @@ Before `npm run db:seed`, put your Neon connection string and secret in `.env`:
 ```env
 DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
 AUTH_SECRET="a-long-random-secret"
+```
+
+Then initialize the database and start the app:
+
+```bash
+npm run db:seed
+npm run dev
 ```
 
 Open `http://localhost:3000`.
@@ -143,4 +149,4 @@ Example: ordering `2 kg` of a weight product converts to `2000 g`; if the produc
 
 ## Current Build
 
-The current app is still a frontend prototype focused on the buyer, seller, admin dashboard flow and unit conversion story. The README above documents the target production architecture and the next implementation steps.
+The current app is wired to Neon-backed endpoints for login, product listings, order placement, and admin edits. The browser UI is still the same polished dashboard experience, but the data now comes from the database instead of in-memory placeholders.
