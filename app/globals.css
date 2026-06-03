@@ -73,6 +73,31 @@ select {
   white-space: nowrap;
 }
 
+.role-tabs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 auto 20px;
+  max-width: 1160px;
+}
+
+.role-tab {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.role-tab.active {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
+}
+
 .summary-strip {
   align-items: stretch;
   display: grid;
@@ -102,12 +127,22 @@ select {
   font-size: 20px;
 }
 
-.workspace-grid {
+.workspace-grid,
+.dashboard-grid,
+.admin-stack {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
   margin: 0 auto;
   max-width: 1160px;
+}
+
+.workspace-grid,
+.dashboard-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.82fr);
+}
+
+.admin-stack {
+  grid-template-columns: 1fr;
 }
 
 .panel {
@@ -118,7 +153,8 @@ select {
   box-shadow: var(--shadow);
 }
 
-.panel:first-child {
+.workspace-grid .panel:first-child,
+.dashboard-grid .large-panel {
   grid-row: span 3;
 }
 
@@ -212,7 +248,8 @@ select {
   width: 100%;
 }
 
-.primary-button {
+.primary-button,
+.small-button {
   background: var(--accent-dark);
   border: 0;
   border-radius: 8px;
@@ -224,7 +261,8 @@ select {
   width: 100%;
 }
 
-.primary-button:hover {
+.primary-button:hover,
+.small-button:hover {
   background: var(--accent);
 }
 
@@ -241,6 +279,55 @@ select {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 140px;
+}
+
+.admin-table {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-row {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) 88px;
+  padding: 14px;
+}
+
+.admin-main strong,
+.admin-main small {
+  display: block;
+}
+
+.admin-main small {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.admin-read-grid,
+.admin-edit-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-read-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.admin-read-grid span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-edit-grid {
+  grid-template-columns: repeat(5, minmax(90px, 1fr));
+}
+
+.small-button {
+  min-height: 40px;
+  padding: 8px 12px;
 }
 
 .calculation-box {
@@ -337,7 +424,8 @@ select {
     flex-direction: column;
   }
 
-  .workspace-grid {
+  .workspace-grid,
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
@@ -345,10 +433,21 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .panel:first-child,
+  .role-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-grid .panel:first-child,
+  .dashboard-grid .large-panel,
   .orders-panel {
     grid-row: auto;
     grid-column: auto;
+  }
+
+  .admin-row,
+  .admin-edit-grid,
+  .admin-read-grid {
+    grid-template-columns: 1fr;
   }
 }
 
