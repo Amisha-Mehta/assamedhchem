@@ -45,7 +45,22 @@ create table if not exists order_items (
   line_total_inr numeric(30,12) not null
 );
 
+create table if not exists product_requests (
+  id uuid primary key default gen_random_uuid(),
+  buyer_id uuid not null references users(id) on delete cascade,
+  buyer_name text not null,
+  buyer_email text not null,
+  requested_product_name text not null,
+  requested_category text,
+  notes text,
+  status text not null default 'open' check (status in ('open', 'reviewed', 'fulfilled', 'dismissed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_products_seller_id on products (seller_id);
 create index if not exists idx_products_name on products (name);
 create index if not exists idx_orders_user_id on orders (user_id);
 create index if not exists idx_order_items_order_id on order_items (order_id);
+create index if not exists idx_product_requests_buyer_id on product_requests (buyer_id);
+create index if not exists idx_product_requests_name on product_requests (requested_product_name);

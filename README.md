@@ -4,14 +4,16 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 
 ## Features
 
-- Role-based login for buyer, seller, and admin.
-- Buyer panel to search and filter products, then place quotations or orders.
+- Role-based authentication for buyer, seller, and admin.
+- Buyer signup and login, with admin accounts issued only from the backend.
+- Buyer panel to search and filter products in real time, then place quotations or orders.
+- Buyer request flow when no product matches, so admins can see which buyer requested which product.
 - Seller panel to list products with name, SKU, quantity, unit dimension, stock, and INR pricing.
-- Seller sales panel to view buyer requests for their own products.
-- Admin panel to search all products and sellers, create listings for any seller, edit or deactivate listings, and view all orders.
+- Seller sales panel to view buyer orders for their own products.
+- Admin panel to search all products and sellers, create listings for any seller, edit or deactivate listings, review all orders, and review buyer product requests.
 - Flexible quantities in `g`, `kg`, `mL`, `L`, and `unit`.
 - Signed HTTP-only session cookie and PBKDF2 password hashes.
-- Neon-backed API routes for auth, products, and orders.
+- Neon-backed API routes for auth, products, orders, and product requests.
 
 ## Tech Stack And Design
 
@@ -20,6 +22,7 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 - Auth: email/password login, PBKDF2 password hashes, signed cookie sessions.
 - Deployment: Vercel with `DATABASE_URL` and `AUTH_SECRET` environment variables.
 - Server actions validate roles, normalize units, calculate prices, and persist orders and listings in PostgreSQL.
+- Buyer requests are stored in a dedicated `product_requests` table and displayed in the admin dashboard.
 
 ## Database Schema
 
@@ -53,6 +56,17 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 - `total_inr` numeric(30,12)
 - `notes` text
 
+### `product_requests`
+
+- `id` UUID primary key
+- `buyer_id` UUID references `users(id)`
+- `buyer_name` text
+- `buyer_email` text
+- `requested_product_name` text
+- `requested_category` text
+- `notes` text
+- `status` text check (`open`, `reviewed`, `fulfilled`, `dismissed`)
+
 ### `order_items`
 
 - `product_id` UUID references `products(id)`
@@ -85,13 +99,15 @@ Prices are stored as INR per base unit:
 - Volume products: price per `mL`
 - Count products: price per `unit`
 
-Conversions happen in `app/actions.ts` during order placement:
+Conversions happen in `app/api/orders/route.ts` during order placement:
 
 - Buyer enters `requested_qty` and `requested_unit`.
 - The action validates the unit against the product dimension.
 - Quantity converts to `base_qty`.
 - `line_total_inr = base_qty * price_per_base_unit_inr`.
 - Requested and base values are both stored for seller/admin audit.
+
+In the current UI, the same conversion logic is applied during order preview and again when an order is submitted so the displayed total matches the stored data.
 
 ## Local Setup
 
@@ -124,16 +140,18 @@ Open `http://localhost:3000`.
 
 ## Login Policy
 
-- The login page uses a single email and password form.
-- The email decides the role after sign-in.
+- The login page now supports both login and signup.
+- Signup is available only for buyer and seller.
+- Admin access is backend-seeded only and cannot be selected in the signup form.
 - Passwords must include uppercase, lowercase, a number, a special character, and at least 8 characters.
-- Example email buttons are not shown on the page anymore.
 
 ## Role Flows
 
 - Buyer: Login with a buyer email and land directly on the Buyer Dashboard to search products, choose quantities and units, and place a quotation or order.
 - Seller: Login with a seller email and land directly on the Seller Dashboard to create product listings, manage active stock, and view sales requests.
 - Admin: Login with an admin email and land directly on the Admin Dashboard to search all products and sellers, create or edit any seller listing, deactivate listings, and review all orders and statuses.
+- Buyer product requests that do not match any result are sent to admin with the buyer name and requested product.
+- Buyers can enter smaller divisible quantities like `100 g` for a `1 kg` rate and the app will convert to the internal base unit before pricing.
 
 Example: ordering `2 kg` of a weight product converts to `2000 g`; if the product rate is `INR 0.85/g`, the line total is `INR 1,700.00`.
 
@@ -149,4 +167,4 @@ Example: ordering `2 kg` of a weight product converts to `2000 g`; if the produc
 
 ## Current Build
 
-The current app is wired to Neon-backed endpoints for login, product listings, order placement, and admin edits. The browser UI is still the same polished dashboard experience, but the data now comes from the database instead of in-memory placeholders.
+The current app is wired to Neon-backed endpoints for login, signup, product listings, order placement, product requests, and admin edits. The browser UI is still the same polished dashboard experience, but the data now comes from the database instead of in-memory placeholders.

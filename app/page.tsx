@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   convertToBaseUnit,
   isValidStrongPassword,
@@ -40,6 +40,19 @@ type Order = {
   ratePerBaseUnit: number;
   totalPrice: number;
   status: "Placed" | "Confirmed" | "Cancelled";
+};
+
+type ProductRequest = {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  buyerEmail: string;
+  requestedProductName: string;
+  requestedCategory: string;
+  notes: string;
+  status: "open" | "reviewed" | "fulfilled" | "dismissed";
+  createdAt: string;
+  updatedAt: string;
 };
 
 const starterProducts: Product[] = [
@@ -135,11 +148,17 @@ export default function Home() {
   const [signupError, setSignupError] = useState("");
   const [products, setProducts] = useState<Product[]>(starterProducts);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [productRequests, setProductRequests] = useState<ProductRequest[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(starterProducts[0].id);
   const [orderQuantity, setOrderQuantity] = useState("2");
   const [selectedUnit, setSelectedUnit] = useState<Unit>("kg");
   const [buyerName, setBuyerName] = useState("Buyer");
   const [buyerSearch, setBuyerSearch] = useState("");
+  const [requestProductName, setRequestProductName] = useState("");
+  const [requestCategory, setRequestCategory] = useState("");
+  const [requestNotes, setRequestNotes] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState("");
   const [adminSearch, setAdminSearch] = useState("");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [sellerProduct, setSellerProduct] = useState(blankSellerProduct);
@@ -151,10 +170,11 @@ export default function Home() {
   const numericQuantity = Number(orderQuantity) || 0;
   const allowedBuyerUnits = unitsByDimension[selectedProduct.dimension];
   const sellerBaseUnits = unitsByDimension[sellerProduct.dimension];
+  const deferredBuyerSearch = useDeferredValue(buyerSearch);
 
   const buyerProducts = products.filter((product) => {
     const searchText = `${product.name} ${product.category} ${product.listedBy}`;
-    return searchText.toLowerCase().includes(buyerSearch.toLowerCase());
+    return searchText.toLowerCase().includes(deferredBuyerSearch.toLowerCase());
   });
 
   const adminProducts = products.filter((product) => {
@@ -198,13 +218,15 @@ export default function Home() {
   }
 
   async function loadDashboardData(nextRole: Role) {
-    const [productsResponse, ordersResponse] = await Promise.all([
+    const [productsResponse, ordersResponse, productRequestsResponse] = await Promise.all([
       apiRequest<{ products: Product[] }>("/api/products"),
       apiRequest<{ orders: Order[] }>("/api/orders"),
+      apiRequest<{ requests: ProductRequest[] }>("/api/product-requests"),
     ]);
 
     setProducts(productsResponse.products);
     setOrders(ordersResponse.orders);
+    setProductRequests(productRequestsResponse.requests);
 
     if (nextRole === "buyer" && productsResponse.products.length > 0) {
       setSelectedProductId(productsResponse.products[0].id);
@@ -438,6 +460,38 @@ export default function Home() {
     });
 
     await loadDashboardData(loggedInRole);
+  }
+
+  async function requestProductFromAdmin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const requestedProduct = requestProductName.trim() || deferredBuyerSearch.trim();
+
+    if (!requestedProduct) {
+      setRequestError("Tell us which product you want.");
+      return;
+    }
+
+    try {
+      await apiRequest("/api/product-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          requestedProductName: requestedProduct,
+          requestedCategory: requestCategory,
+          notes: requestNotes,
+        }),
+      });
+
+      setRequestError("");
+      setRequestSuccess("Request sent to admin.");
+      setRequestProductName("");
+      setRequestCategory("");
+      setRequestNotes("");
+      await loadDashboardData(loggedInRole);
+    } catch (error) {
+      setRequestSuccess("");
+      setRequestError(error instanceof Error ? error.message : "Request failed.");
+    }
   }
 
   async function updateProduct(productId: string, changes: Partial<Product>) {
@@ -741,36 +795,77 @@ export default function Home() {
               />
             </label>
 
-            <div className="product-list">
-              {buyerProducts.map((product) => (
-                <button
-                  className={
-                    product.id === selectedProduct.id
-                      ? "product-row active"
-                      : "product-row"
-                  }
-                  key={product.id}
-                  onClick={() => chooseProduct(product)}
-                  type="button"
-                >
+            {buyerProducts.length > 0 ? (
+              <div className="product-list">
+                {buyerProducts.map((product) => (
+                  <button
+                    className={
+                      product.id === selectedProduct.id
+                        ? "product-row active"
+                        : "product-row"
+                    }
+                    key={product.id}
+                    onClick={() => chooseProduct(product)}
+                    type="button"
+                  >
                     <span>
                       <strong>{product.name}</strong>
                       <small>
-                      {product.sku} | {product.category} sold by {product.listedBy}
+                        {product.sku} | {product.category} sold by {product.listedBy}
                       </small>
                     </span>
-                  <span className="right-text">
-                    <strong>
-                      {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
-                    </strong>
-                    <small>
-                      Stock {formatQuantity(product.availableQuantity)}{" "}
-                      {product.baseUnit}
-                    </small>
-                  </span>
-                </button>
-              ))}
-            </div>
+                    <span className="right-text">
+                      <strong>
+                        {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
+                      </strong>
+                      <small>
+                        Stock {formatQuantity(product.availableQuantity)}{" "}
+                        {product.baseUnit}
+                      </small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state request-empty">
+                <strong>No products matched your search.</strong>
+                <p>
+                  Request the product from admin and they will see which buyer
+                  asked for it.
+                </p>
+                <form className="request-form" onSubmit={requestProductFromAdmin}>
+                  <label>
+                    Requested product
+                    <input
+                      placeholder="Example: Acetone"
+                      value={requestProductName || deferredBuyerSearch}
+                      onChange={(event) => setRequestProductName(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <input
+                      placeholder="Example: Solvent"
+                      value={requestCategory}
+                      onChange={(event) => setRequestCategory(event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Notes
+                    <input
+                      placeholder="Any pack size, purity, or brand preference"
+                      value={requestNotes}
+                      onChange={(event) => setRequestNotes(event.target.value)}
+                    />
+                  </label>
+                  {requestError ? <p className="login-error">{requestError}</p> : null}
+                  {requestSuccess ? <p className="request-success">{requestSuccess}</p> : null}
+                  <button className="primary-button" type="submit">
+                    Request product
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
 
           <div className="panel">
@@ -864,6 +959,12 @@ export default function Home() {
                 <span>Total quotation</span>
                 <strong>{formatMoney(orderPreview.totalPrice)}</strong>
               </div>
+            </div>
+
+            <div className="unit-tip">
+              Try divisible quantities like <strong>100 g</strong> for a 1 kg
+              product, or <strong>250 mL</strong> for a 1 L product. The app
+              converts it back to the stored base unit automatically.
             </div>
 
             <div
@@ -1225,6 +1326,18 @@ export default function Home() {
           <div className="panel">
             <div className="panel-heading">
               <div>
+                <p className="eyebrow">Product requests</p>
+                <h2>Buyer requests for unavailable products</h2>
+              </div>
+              <span>{productRequests.length} requests</span>
+            </div>
+
+            <RequestList requests={productRequests} />
+          </div>
+
+          <div className="panel">
+            <div className="panel-heading">
+              <div>
                 <p className="eyebrow">Admin orders</p>
                 <h2>All quotations and conversion details</h2>
               </div>
@@ -1292,6 +1405,39 @@ function OrderList({
               <option value="Cancelled">Cancelled</option>
             </select>
           </label>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RequestList({ requests }: { requests: ProductRequest[] }) {
+  if (requests.length === 0) {
+    return (
+      <div className="empty-state">
+        Buyer requests will appear here with the buyer name, email, and the
+        product they asked for.
+      </div>
+    );
+  }
+
+  return (
+    <div className="request-list">
+      {requests.map((request) => (
+        <div className="request-row" key={request.id}>
+          <div>
+            <strong>{request.requestedProductName}</strong>
+            <small>
+              {request.buyerName} ({request.buyerEmail})
+            </small>
+          </div>
+          <div>
+            <span>
+              Category: {request.requestedCategory || "Not specified"}
+            </span>
+            <span>Notes: {request.notes || "No notes added"}</span>
+            <strong className="request-status">{request.status}</strong>
+          </div>
         </div>
       ))}
     </div>

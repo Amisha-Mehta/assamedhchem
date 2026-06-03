@@ -53,7 +53,7 @@ select {
 }
 
 .login-panel {
-  align-items: stretch;
+  align-items: start;
   background:
     linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(249, 245, 238, 0.98));
   border: 1px solid var(--line);
@@ -75,6 +75,7 @@ select {
 
 .login-copy-block {
   gap: 16px;
+  padding-top: 4px;
 }
 
 .login-copy-block h1 {
@@ -190,6 +191,15 @@ select {
   padding: 14px 16px;
 }
 
+.request-success {
+  background: rgba(77, 123, 135, 0.12);
+  border: 1px solid rgba(77, 123, 135, 0.22);
+  border-radius: 12px;
+  color: var(--accent-dark);
+  margin: 0;
+  padding: 12px 14px;
+}
+
 .feature-strip {
   grid-column: 1 / -1;
   display: grid;
@@ -225,6 +235,73 @@ select {
   color: var(--muted);
   line-height: 1.6;
   margin: 0;
+}
+
+.request-empty {
+  gap: 14px;
+}
+
+.request-empty strong {
+  display: block;
+  color: var(--text);
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.request-empty p {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.request-form {
+  display: grid;
+  gap: 12px;
+}
+
+.unit-tip {
+  background: rgba(77, 123, 135, 0.08);
+  border: 1px solid rgba(77, 123, 135, 0.18);
+  border-radius: 16px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+
+.unit-tip strong {
+  color: var(--text);
+}
+
+.request-list {
+  display: grid;
+  gap: 12px;
+}
+
+.request-row {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.1fr);
+  padding: 14px;
+}
+
+.request-row strong,
+.request-row small,
+.request-row span {
+  display: block;
+}
+
+.request-row small,
+.request-row span {
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.request-status {
+  color: var(--accent-dark);
+  text-transform: uppercase;
 }
 
 .page-shell {
@@ -266,10 +343,10 @@ select {
 .eyebrow-chip {
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(77, 123, 135, 0.26);
-  border-radius: 999px;
+  border-radius: 10px;
   display: inline-flex;
   margin-bottom: 0;
-  padding: 10px 14px;
+  padding: 10px 16px;
   width: fit-content;
 }
 
@@ -751,7 +828,8 @@ button:focus-visible {
   .admin-edit-grid,
   .admin-read-grid,
   .admin-actions,
-  .order-row {
+  .order-row,
+  .request-row {
     grid-template-columns: 1fr;
   }
 }
