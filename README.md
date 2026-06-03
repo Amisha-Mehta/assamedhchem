@@ -4,17 +4,20 @@ This project is being built as a small inventory and order management system for
 
 The current working step focuses on the most important part of the assignment: how a seller lists products, how a buyer selects a product, and how the website clearly converts units before calculating the INR price.
 
-## Current Step
+## Step 1: Initial Conversion Screen
 
 - Seller side sample product listing.
-- Seller form for adding a new product from the website.
 - Buyer side order preview.
 - Supported units: `g`, `kg`, `mL`, `L`, and `unit`.
 - Visible conversion before price calculation.
 - INR price formatting.
 - Stock availability check after conversion.
 
-## How Step 2 Works
+This first step shows the main assignment idea on the website: the seller has listed products, the buyer selects one product, enters quantity in a supported unit, and the website converts the quantity before calculating the INR total.
+
+## Step 2: Seller Product Form
+
+The second step adds a form so the seller can list a new product from the website.
 
 The seller can enter:
 
