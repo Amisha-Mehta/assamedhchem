@@ -1,93 +1,139 @@
-# AasaMedChem Inventory Assignment
+# AasaMedChem Inventory System
 
-This project is being built as a small inventory and order management system for the AasaMedChem assignment.
+A small inventory, seller listing, buyer ordering, and admin oversight app built with Next.js, Neon PostgreSQL, and Vercel deployment in mind.
 
-The current working step focuses on the most important part of the assignment: how a seller lists products, how a buyer selects a product, and how the website clearly converts units before calculating the INR price.
+## Features
 
-## Step 1: Initial Conversion Screen
+- Role-based login for buyer, seller, and admin.
+- Buyer panel to search and filter products, then place quotations or orders.
+- Seller panel to list products with name, SKU, quantity, unit dimension, stock, and INR pricing.
+- Seller sales panel to view buyer requests for their own products.
+- Admin panel to search all products and sellers, create listings for any seller, edit or deactivate listings, and view all orders.
+- Flexible quantities in `g`, `kg`, `mL`, `L`, and `unit`.
+- Signed HTTP-only session cookie and PBKDF2 password hashes.
 
-- Seller side sample product listing.
-- Buyer side order preview.
-- Supported units: `g`, `kg`, `mL`, `L`, and `unit`.
-- Visible conversion before price calculation.
-- INR price formatting.
-- Stock availability check after conversion.
+## Tech Stack And Design
 
-This first step shows the main assignment idea on the website: the seller has listed products, the buyer selects one product, enters quantity in a supported unit, and the website converts the quantity before calculating the INR total.
+- Frontend and backend: Next.js App Router with React Server Components and Server Actions.
+- Database: Neon-hosted PostgreSQL via `@neondatabase/serverless`.
+- Auth: email/password login, PBKDF2 password hashes, signed cookie sessions.
+- Deployment: Vercel with `DATABASE_URL` and `AUTH_SECRET` environment variables.
+- Server actions validate roles, normalize units, calculate prices, and persist orders and listings in PostgreSQL.
 
-## Step 2: Seller Product Form
+## Database Schema
 
-The second step adds a form so the seller can list a new product from the website.
+### `users`
 
-The seller can enter:
+- `id` UUID primary key
+- `name` text
+- `email` text unique
+- `role` text check (`admin`, `seller`, `buyer`)
+- `password_hash` text
 
-- Product name.
-- Category.
-- Product type: weight, volume, or count.
-- Stock quantity.
-- Base unit.
-- Price per base unit in INR.
-- Seller name.
+### `products`
 
-After submitting the form, the product is added to the seller listing and also becomes available in the buyer order preview. This keeps the flow clear: the seller lists the product first, then the buyer can select it and see the conversion-based price.
+- `id` UUID primary key
+- `seller_id` UUID references `users(id)`
+- `sku` text unique
+- `name` text
+- `category` text
+- `description` text
+- `dimension` text check (`weight`, `volume`, `count`)
+- `base_unit` text check (`g`, `mL`, `unit`)
+- `inventory_base_qty` numeric(30,12)
+- `price_per_base_unit_inr` numeric(30,12)
+- `is_active` boolean
 
-## Step 3: Role Based Dashboards
+### `orders`
 
-The application now has three clear dashboards:
+- `id` UUID primary key
+- `user_id` UUID references `users(id)` as the buyer
+- `status` text check (`pending`, `approved`, `rejected`, `fulfilled`)
+- `total_inr` numeric(30,12)
+- `notes` text
 
-- Buyer Dashboard: search products, select a seller product, enter quantity in a supported unit, and place a quotation.
-- Seller Dashboard: list products with name, category, quantity, unit, price, and seller name. Seller can also see incoming buyer requests.
-- Admin Dashboard: search all products, view all quotations, and edit product details such as stock, base unit, category, and price.
+### `order_items`
 
-This matches the main flow:
+- `product_id` UUID references `products(id)`
+- `requested_qty` numeric(30,12)
+- `requested_unit` text check (`g`, `kg`, `mL`, `L`, `unit`)
+- `base_qty` numeric(30,12)
+- `base_unit` text check (`g`, `mL`, `unit`)
+- `unit_price_inr` numeric(30,12)
+- `line_total_inr` numeric(30,12)
 
-1. Seller lists a product.
-2. Buyer searches and buys from the seller.
-3. System converts buyer quantity into the product base unit.
-4. System calculates the INR quotation total.
-5. Seller and Admin can see the order with conversion details.
-6. Admin can search and edit product records.
+`numeric(30,12)` is used for quantities and prices to support large values and high decimal precision without floating-point storage errors.
 
-## Unit Strategy
+## Unit Storage And Conversion Strategy
 
-For this first version, the conversion rule is intentionally simple and easy to verify:
+Internal storage uses one base unit per dimension:
 
-- Weight products are calculated in grams.
-- Volume products are calculated in milliliters.
-- Count products are calculated in units.
+- Weight: grams (`g`)
+- Volume: milliliters (`mL`)
+- Count: items (`unit`)
+
+Conversion factors:
+
 - `1 kg = 1000 g`
 - `1 L = 1000 mL`
+- `1 unit = 1 unit`
 
-Example:
+Prices are stored as INR per base unit:
 
-If Sodium Chloride is priced at `INR 1.85 / g` and the buyer enters `2 kg`, the system converts the order to `2000 g` and calculates `2000 * 1.85`.
+- Weight products: price per `g`
+- Volume products: price per `mL`
+- Count products: price per `unit`
 
-## How To Run
+Conversions happen in `app/actions.ts` during order placement:
 
-Install dependencies:
+- Buyer enters `requested_qty` and `requested_unit`.
+- The action validates the unit against the product dimension.
+- Quantity converts to `base_qty`.
+- `line_total_inr = base_qty * price_per_base_unit_inr`.
+- Requested and base values are both stored for seller/admin audit.
+
+## Local Setup
 
 ```bash
 npm install
-```
-
-Start the development server:
-
-```bash
+copy .env.example .env
+npm run db:seed
 npm run dev
 ```
 
-Open this URL in Chrome or Edge:
+Before `npm run db:seed`, put your Neon connection string and secret in `.env`:
 
-```text
-http://localhost:3000
+```env
+DATABASE_URL="postgresql://user:password@host.neon.tech/dbname?sslmode=require"
+AUTH_SECRET="a-long-random-secret"
 ```
 
-## Suggested Commit Message
+Open `http://localhost:3000`.
 
-```text
-Add role based buyer seller admin dashboards
-```
+## Demo Credentials
 
-## Next Step
+- Admin: `admin@aasamedchem.test` / `Admin@123`
+- Seller: `seller@aasamedchem.test` / `Seller@123`
+- Buyer: `buyer@aasamedchem.test` / `Buyer@123`
 
-The next step should be saving products and orders in PostgreSQL on Neon instead of keeping them only in browser state.
+## Role Flows
+
+- Buyer: Login with a buyer email and land directly on the Buyer Dashboard to search products, choose quantities and units, and place a quotation or order.
+- Seller: Login with a seller email and land directly on the Seller Dashboard to create product listings, manage active stock, and view sales requests.
+- Admin: Login with an admin email and land directly on the Admin Dashboard to search all products and sellers, create or edit any seller listing, deactivate listings, and review all orders and statuses.
+
+Example: ordering `2 kg` of a weight product converts to `2000 g`; if the product rate is `INR 0.85/g`, the line total is `INR 1,700.00`.
+
+## Vercel Deployment
+
+1. Push the repository to GitHub.
+2. Import the repository in Vercel.
+3. Add environment variables:
+   - `DATABASE_URL`
+   - `AUTH_SECRET`
+4. Deploy.
+5. Run `npm run db:seed` locally against the same Neon database, or visit the deployed app once to let schema initialization run.
+
+## Current Build
+
+The current app is still a frontend prototype focused on the buyer, seller, admin dashboard flow and unit conversion story. The README above documents the target production architecture and the next implementation steps.

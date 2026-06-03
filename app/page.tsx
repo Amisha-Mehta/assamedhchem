@@ -20,6 +20,7 @@ type Product = {
 
 type Order = {
   id: number;
+  productId: number;
   buyerName: string;
   sellerName: string;
   productName: string;
@@ -29,7 +30,7 @@ type Order = {
   baseUnit: Unit;
   ratePerBaseUnit: number;
   totalPrice: number;
-  status: "Quotation" | "Confirmed";
+  status: "Placed" | "Confirmed" | "Cancelled";
 };
 
 const starterProducts: Product[] = [
@@ -121,8 +122,24 @@ function blankSellerProduct() {
   };
 }
 
+function getRoleFromEmail(email: string): Role {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (normalizedEmail.includes("admin")) {
+    return "admin";
+  }
+
+  if (normalizedEmail.includes("seller")) {
+    return "seller";
+  }
+
+  return "buyer";
+}
+
 export default function Home() {
-  const [activeRole, setActiveRole] = useState<Role>("buyer");
+  const [loggedInRole, setLoggedInRole] = useState<Role>("buyer");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
   const [products, setProducts] = useState<Product[]>(starterProducts);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(starterProducts[0].id);
@@ -165,6 +182,35 @@ export default function Home() {
       hasEnoughStock: convertedQuantity <= selectedProduct.availableQuantity,
     };
   }, [numericQuantity, selectedProduct, selectedUnit]);
+
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!loginEmail.trim()) {
+      return;
+    }
+
+    const nextRole = getRoleFromEmail(loginEmail);
+    setLoggedInRole(nextRole);
+    setIsLoggedIn(true);
+
+    if (nextRole === "buyer") {
+      setBuyerName(loginEmail.split("@")[0] || "Buyer");
+    }
+
+    if (nextRole === "seller") {
+      setSellerProduct((currentProduct) => ({
+        ...currentProduct,
+        listedBy: loginEmail.split("@")[0] || "Seller",
+      }));
+    }
+  }
+
+  function logout() {
+    setIsLoggedIn(false);
+    setLoginEmail("");
+    setLoggedInRole("buyer");
+  }
 
   function chooseProduct(product: Product) {
     setSelectedProductId(product.id);
@@ -216,6 +262,7 @@ export default function Home() {
 
     const newOrder: Order = {
       id: Date.now(),
+      productId: selectedProduct.id,
       buyerName: buyerName.trim() || "Buyer",
       sellerName: selectedProduct.listedBy,
       productName: selectedProduct.name,
@@ -225,9 +272,13 @@ export default function Home() {
       baseUnit: selectedProduct.baseUnit,
       ratePerBaseUnit: selectedProduct.pricePerBaseUnit,
       totalPrice: orderPreview.totalPrice,
-      status: "Quotation",
+      status: "Placed",
     };
 
+    updateProduct(selectedProduct.id, {
+      availableQuantity:
+        selectedProduct.availableQuantity - orderPreview.convertedQuantity,
+    });
     setOrders((currentOrders) => [newOrder, ...currentOrders]);
   }
 
@@ -246,14 +297,106 @@ export default function Home() {
     });
   }
 
+  function deleteProduct(productId: number) {
+    setProducts((currentProducts) =>
+      currentProducts.filter((product) => product.id !== productId),
+    );
+    if (selectedProductId === productId) {
+      const nextProduct = products.find((product) => product.id !== productId);
+      if (nextProduct) {
+        chooseProduct(nextProduct);
+      }
+    }
+  }
+
+  function updateOrderStatus(orderId: number, status: Order["status"]) {
+    setOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === orderId ? { ...order, status } : order,
+      ),
+    );
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel">
+          <div>
+            <p className="eyebrow">AasaMedChem Inventory</p>
+            <h1>Sign in to open your dashboard</h1>
+            <p className="login-copy">
+              One login page routes users automatically by email. Use an admin,
+              seller, or buyer email to enter the correct dashboard.
+            </p>
+          </div>
+
+          <form className="login-form" onSubmit={handleLogin}>
+            <label>
+              Email address
+              <input
+                placeholder="admin@aasamedchem.com"
+                type="email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+              />
+            </label>
+            <button className="primary-button" type="submit">
+              Continue
+            </button>
+          </form>
+
+          <div className="login-examples">
+            <span>Try these emails:</span>
+            <button
+              type="button"
+              onClick={() => setLoginEmail("buyer@aasamedchem.com")}
+            >
+              buyer@aasamedchem.com
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginEmail("seller@aasamedchem.com")}
+            >
+              seller@aasamedchem.com
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginEmail("admin@aasamedchem.com")}
+            >
+              admin@aasamedchem.com
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  function roleTitle() {
+    if (loggedInRole === "admin") {
+      return "Admin Dashboard";
+    }
+
+    if (loggedInRole === "seller") {
+      return "Seller Dashboard";
+    }
+
+    return "Buyer Dashboard";
+  }
+
   return (
     <main className="page-shell">
       <section className="top-bar">
         <div>
           <p className="eyebrow">AasaMedChem Inventory</p>
-          <h1>Role based product, order, and unit conversion system</h1>
+          <h1>{roleTitle()}</h1>
         </div>
-        <div className="role-badge">Buyer / Seller / Admin</div>
+        <div className="user-box">
+          <span>{loginEmail}</span>
+          <strong>{loggedInRole} account</strong>
+          <button onClick={logout} type="button">
+            Logout
+          </button>
+        </div>
       </section>
 
       <section className="summary-strip">
@@ -271,22 +414,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="role-tabs" aria-label="Dashboard roles">
-        {(["buyer", "seller", "admin"] as Role[]).map((role) => (
-          <button
-            className={activeRole === role ? "role-tab active" : "role-tab"}
-            key={role}
-            onClick={() => setActiveRole(role)}
-            type="button"
-          >
-            {role === "buyer" && "Buyer Dashboard"}
-            {role === "seller" && "Seller Dashboard"}
-            {role === "admin" && "Admin Dashboard"}
-          </button>
-        ))}
-      </section>
-
-      {activeRole === "buyer" && (
+      {loggedInRole === "buyer" && (
         <section className="dashboard-grid">
           <div className="panel large-panel">
             <div className="panel-heading">
@@ -447,13 +575,13 @@ export default function Home() {
               onClick={placeOrder}
               type="button"
             >
-              Place quotation
+              Place order
             </button>
           </div>
         </section>
       )}
 
-      {activeRole === "seller" && (
+      {loggedInRole === "seller" && (
         <section className="dashboard-grid">
           <div className="panel">
             <div className="panel-heading">
@@ -592,12 +720,12 @@ export default function Home() {
               <span>{orders.length} active</span>
             </div>
 
-            <OrderList orders={orders} />
+            <OrderList orders={orders} onStatusChange={updateOrderStatus} />
           </div>
         </section>
       )}
 
-      {activeRole === "admin" && (
+      {loggedInRole === "admin" && (
         <section className="admin-stack">
           <div className="panel">
             <div className="panel-heading">
@@ -715,15 +843,24 @@ export default function Home() {
                       </div>
                     )}
 
-                    <button
-                      className="small-button"
-                      onClick={() =>
-                        setEditingProductId(isEditing ? null : product.id)
-                      }
-                      type="button"
-                    >
-                      {isEditing ? "Done" : "Edit"}
-                    </button>
+                    <div className="admin-actions">
+                      <button
+                        className="small-button"
+                        onClick={() =>
+                          setEditingProductId(isEditing ? null : product.id)
+                        }
+                        type="button"
+                      >
+                        {isEditing ? "Done" : "Edit"}
+                      </button>
+                      <button
+                        className="small-button danger-button"
+                        onClick={() => deleteProduct(product.id)}
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -739,7 +876,7 @@ export default function Home() {
               <span>{orders.length} records</span>
             </div>
 
-            <OrderList orders={orders} />
+            <OrderList orders={orders} onStatusChange={updateOrderStatus} />
           </div>
         </section>
       )}
@@ -747,7 +884,13 @@ export default function Home() {
   );
 }
 
-function OrderList({ orders }: { orders: Order[] }) {
+function OrderList({
+  orders,
+  onStatusChange,
+}: {
+  orders: Order[];
+  onStatusChange: (orderId: number, status: Order["status"]) => void;
+}) {
   if (orders.length === 0) {
     return (
       <div className="empty-state">
@@ -781,6 +924,19 @@ function OrderList({ orders }: { orders: Order[] }) {
             </span>
             <strong>{formatMoney(order.totalPrice)}</strong>
           </div>
+          <label className="status-field">
+            Status
+            <select
+              value={order.status}
+              onChange={(event) =>
+                onStatusChange(order.id, event.target.value as Order["status"])
+              }
+            >
+              <option value="Placed">Placed</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </label>
         </div>
       ))}
     </div>

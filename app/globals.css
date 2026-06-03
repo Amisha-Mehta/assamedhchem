@@ -29,6 +29,68 @@ select {
   font: inherit;
 }
 
+.login-shell {
+  align-items: center;
+  background: var(--background);
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 520px;
+  padding: 28px;
+  width: 100%;
+}
+
+.login-panel h1 {
+  font-size: 36px;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.login-copy {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 14px 0 0;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-examples {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+}
+
+.login-examples span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.login-examples button {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
 .page-shell {
   min-height: 100vh;
   padding: 28px;
@@ -73,6 +135,32 @@ select {
   white-space: nowrap;
 }
 
+.user-box {
+  align-items: end;
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+}
+
+.user-box span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.user-box strong {
+  text-transform: capitalize;
+}
+
+.user-box button {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+}
+
 .role-tabs {
   display: grid;
   gap: 10px;
@@ -96,6 +184,12 @@ select {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
   color: #fff;
+}
+
+.role-tab:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .summary-strip {
@@ -292,7 +386,7 @@ select {
   border-radius: 8px;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) 88px;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr) 170px;
   padding: 14px;
 }
 
@@ -328,6 +422,20 @@ select {
 .small-button {
   min-height: 40px;
   padding: 8px 12px;
+}
+
+.admin-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.danger-button {
+  background: #8f2f28;
+}
+
+.danger-button:hover {
+  background: #ad3d35;
 }
 
 .calculation-box {
@@ -399,6 +507,7 @@ select {
   border-radius: 8px;
   display: grid;
   gap: 12px;
+  grid-template-columns: minmax(160px, 1fr) minmax(220px, 1.2fr) 150px;
   padding: 14px;
 }
 
@@ -414,6 +523,10 @@ select {
   margin-top: 5px;
 }
 
+.status-field {
+  align-self: start;
+}
+
 @media (max-width: 860px) {
   .page-shell {
     padding: 20px;
@@ -422,6 +535,11 @@ select {
   .top-bar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .user-box {
+    align-items: start;
+    justify-items: start;
   }
 
   .workspace-grid,
@@ -446,7 +564,9 @@ select {
 
   .admin-row,
   .admin-edit-grid,
-  .admin-read-grid {
+  .admin-read-grid,
+  .admin-actions,
+  .order-row {
     grid-template-columns: 1fr;
   }
 }
