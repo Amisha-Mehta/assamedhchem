@@ -198,6 +198,9 @@ export default function Home() {
   const [adminSearch, setAdminSearch] = useState("");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [sellerProduct, setSellerProduct] = useState(blankSellerProduct);
+  const [sellerView, setSellerView] = useState<"publish" | "listings" | "orders">(
+    "publish",
+  );
 
   const selectedProduct = products.find(
     (product) => product.id === selectedProductId,
@@ -1026,218 +1029,231 @@ export default function Home() {
       )}
 
       {loggedInRole === "seller" && (
-        <section className="dashboard-grid">
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Seller dashboard</p>
-                <h2>Publish and manage your stock</h2>
-              </div>
-              <span>Inventory entry</span>
-            </div>
+        <section className="seller-dashboard-shell">
+          <div className="seller-jumpbar">
+            <label>
+              Jump to section
+              <select
+                value={sellerView}
+                onChange={(event) =>
+                  setSellerView(event.target.value as "publish" | "listings" | "orders")
+                }
+              >
+                <option value="publish">Publish product</option>
+                <option value="listings">My listings</option>
+                <option value="orders">Seller orders</option>
+              </select>
+            </label>
+          </div>
 
-            <form className="seller-form" onSubmit={addSellerProduct}>
-              <label>
-                Product name
-                <input
-                  placeholder="Example: Potassium Bromide"
-                  value={sellerProduct.name}
-                  onChange={(event) =>
-                    setSellerProduct({
-                      ...sellerProduct,
-                      name: event.target.value,
-                    })
-                  }
-                  />
-                </label>
-
-              <label>
-                SKU
-                <input
-                  placeholder="CHEM-POTASSIUM-BROMIDE-001"
-                  value={sellerProduct.sku}
-                  onChange={(event) =>
-                    setSellerProduct({
-                      ...sellerProduct,
-                      sku: event.target.value,
-                    })
-                  }
-                />
-              </label>
-
-                <div className="quantity-row">
-                  <label>
-                    Category
-                    <input
-                      placeholder="Chemical"
-                    value={sellerProduct.category}
-                    onChange={(event) =>
-                      setSellerProduct({
-                        ...sellerProduct,
-                        category: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-
-                <label>
-                  Type
-                  <select
-                    value={sellerProduct.dimension}
-                    onChange={(event) =>
-                      updateSellerDimension(event.target.value as ProductDimension)
-                    }
-                  >
-                    <option value="weight">Weight</option>
-                    <option value="volume">Volume</option>
-                    <option value="count">Count</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="quantity-row">
-                <label>
-                  Stock quantity
-                  <input
-                    min="0"
-                    placeholder="5000"
-                    step="0.0001"
-                    type="number"
-                    value={sellerProduct.availableQuantity}
-                    onChange={(event) =>
-                      setSellerProduct({
-                        ...sellerProduct,
-                        availableQuantity: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-
-                <label>
-                  Base unit
-                  <select
-                    value={sellerProduct.baseUnit}
-                    onChange={(event) =>
-                      setSellerProduct({
-                        ...sellerProduct,
-                        baseUnit: event.target.value as Unit,
-                      })
-                    }
-                  >
-                    {sellerBaseUnits.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                    </select>
-                  </label>
+          <section className="dashboard-grid seller-single-view">
+            <div className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Seller dashboard</p>
+                  {sellerView === "publish" ? (
+                    <h2>Publish and manage your stock</h2>
+                  ) : sellerView === "listings" ? (
+                    <h2>Products published by you</h2>
+                  ) : (
+                    <h2>Incoming buyer requests</h2>
+                  )}
                 </div>
-
-                <label>
-                  Description
-                  <input
-                    placeholder="Short product note"
-                    value={sellerProduct.description}
-                    onChange={(event) =>
-                      setSellerProduct({
-                        ...sellerProduct,
-                        description: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-
-                <label>
-                  Price per base unit in INR
-                  <input
-                    min="0"
-                    placeholder="1.85"
-                  step="0.0001"
-                  type="number"
-                  value={sellerProduct.pricePerBaseUnit}
-                  onChange={(event) =>
-                    setSellerProduct({
-                      ...sellerProduct,
-                      pricePerBaseUnit: event.target.value,
-                    })
-                  }
-                />
-              </label>
-
-              <label>
-                Seller name
-                <input
-                  value={sellerProduct.listedBy}
-                  onChange={(event) =>
-                    setSellerProduct({
-                      ...sellerProduct,
-                      listedBy: event.target.value,
-                    })
-                  }
-                />
-              </label>
-
-              <button className="primary-button" type="submit">
-                Publish product
-              </button>
-            </form>
-
-            <div className="unit-tip">
-              The products you publish below are stored in your own seller
-              account and will appear in the panel beside this form.
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">My listings</p>
-                <h2>Products published by you</h2>
+                <span>
+                  {sellerView === "publish"
+                    ? "Inventory entry"
+                    : sellerView === "listings"
+                      ? `${products.length} items`
+                      : `${orders.length} active`}
+                </span>
               </div>
-              <span>{products.length} items</span>
-            </div>
 
-            {products.length > 0 ? (
-              <div className="product-list">
-                {products.map((product) => (
-                  <div className="product-row seller-product-row" key={product.id}>
-                    <span>
-                      <strong>{product.name}</strong>
-                      <small>
-                        {product.sku} | {product.category} | listed by you
-                      </small>
-                    </span>
-                    <span className="right-text">
-                      <strong>
-                        {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
-                      </strong>
-                      <small>
-                        Stock {formatQuantity(product.availableQuantity)}{" "}
-                        {product.baseUnit}
-                      </small>
-                    </span>
+              {sellerView === "publish" ? (
+                <>
+                  <form className="seller-form" onSubmit={addSellerProduct}>
+                    <label>
+                      Product name
+                      <input
+                        placeholder="Example: Potassium Bromide"
+                        value={sellerProduct.name}
+                        onChange={(event) =>
+                          setSellerProduct({
+                            ...sellerProduct,
+                            name: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      SKU
+                      <input
+                        placeholder="CHEM-POTASSIUM-BROMIDE-001"
+                        value={sellerProduct.sku}
+                        onChange={(event) =>
+                          setSellerProduct({
+                            ...sellerProduct,
+                            sku: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <div className="quantity-row">
+                      <label>
+                        Category
+                        <input
+                          placeholder="Chemical"
+                          value={sellerProduct.category}
+                          onChange={(event) =>
+                            setSellerProduct({
+                              ...sellerProduct,
+                              category: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Type
+                        <select
+                          value={sellerProduct.dimension}
+                          onChange={(event) =>
+                            updateSellerDimension(event.target.value as ProductDimension)
+                          }
+                        >
+                          <option value="weight">Weight</option>
+                          <option value="volume">Volume</option>
+                          <option value="count">Count</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="quantity-row">
+                      <label>
+                        Stock quantity
+                        <input
+                          min="0"
+                          placeholder="5000"
+                          step="0.0001"
+                          type="number"
+                          value={sellerProduct.availableQuantity}
+                          onChange={(event) =>
+                            setSellerProduct({
+                              ...sellerProduct,
+                              availableQuantity: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        Base unit
+                        <select
+                          value={sellerProduct.baseUnit}
+                          onChange={(event) =>
+                            setSellerProduct({
+                              ...sellerProduct,
+                              baseUnit: event.target.value as Unit,
+                            })
+                          }
+                        >
+                          {sellerBaseUnits.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <label>
+                      Description
+                      <input
+                        placeholder="Short product note"
+                        value={sellerProduct.description}
+                        onChange={(event) =>
+                          setSellerProduct({
+                            ...sellerProduct,
+                            description: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Price per base unit in INR
+                      <input
+                        min="0"
+                        placeholder="1.85"
+                        step="0.0001"
+                        type="number"
+                        value={sellerProduct.pricePerBaseUnit}
+                        onChange={(event) =>
+                          setSellerProduct({
+                            ...sellerProduct,
+                            pricePerBaseUnit: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Seller name
+                      <input
+                        value={sellerProduct.listedBy}
+                        onChange={(event) =>
+                          setSellerProduct({
+                            ...sellerProduct,
+                            listedBy: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <button className="primary-button" type="submit">
+                      Publish product
+                    </button>
+                  </form>
+
+                  <div className="unit-tip">
+                    The products you publish are stored in your own seller
+                    account and will appear when you switch to My listings.
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                No products listed yet. Publish one above and it will appear
-                here instantly.
-              </div>
-            )}
-          </div>
-
-          <div className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Seller orders</p>
-                <h2>Incoming buyer requests</h2>
-              </div>
-              <span>{orders.length} active</span>
+                </>
+              ) : sellerView === "listings" ? (
+                products.length > 0 ? (
+                  <div className="product-list">
+                    {products.map((product) => (
+                      <div className="product-row seller-product-row" key={product.id}>
+                        <span>
+                          <strong>{product.name}</strong>
+                          <small>
+                            {product.sku} | {product.category} | listed by you
+                          </small>
+                        </span>
+                        <span className="right-text">
+                          <strong>
+                            {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
+                          </strong>
+                          <small>
+                            Stock {formatQuantity(product.availableQuantity)}{" "}
+                            {product.baseUnit}
+                          </small>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    No products listed yet. Publish one and it will show up here.
+                  </div>
+                )
+              ) : (
+                <OrderList orders={orders} onStatusChange={updateOrderStatus} />
+              )}
             </div>
-
-            <OrderList orders={orders} onStatusChange={updateOrderStatus} />
-          </div>
+          </section>
         </section>
       )}
 

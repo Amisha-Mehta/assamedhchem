@@ -459,6 +459,44 @@ select {
   grid-template-columns: minmax(0, 1fr) minmax(340px, 0.82fr);
 }
 
+.dashboard-grid.seller-single-view {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-grid.seller-single-view .panel {
+  grid-column: 1 / -1;
+}
+
+.seller-dashboard-shell {
+  display: grid;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1160px;
+}
+
+.seller-jumpbar {
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+}
+
+.seller-jumpbar label {
+  align-items: center;
+  background: rgba(255, 253, 248, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px;
+  text-transform: uppercase;
+}
+
+.seller-jumpbar select {
+  max-width: 240px;
+}
+
 .admin-stack {
   grid-template-columns: 1fr;
 }
@@ -826,6 +864,11 @@ button:focus-visible {
   .workspace-grid,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .seller-jumpbar label {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .summary-strip {
