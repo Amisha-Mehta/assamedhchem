@@ -506,47 +506,154 @@ export default function Home() {
         <section className="login-panel">
           <div className="login-copy-block">
             <p className="eyebrow eyebrow-chip">AasaMedChem Assignment</p>
-            <h1>Inventory and quotation management for lab products.</h1>
+            <h1>Track lab stock without the usual clutter.</h1>
             <p className="login-copy">
-              Search chemicals and consumables, quote flexible units like kg or
-              L, and let admins verify every conversion against stored base
-              quantities.
+              A cleaner way to quote chemicals, manage inventory, and keep
+              buyer and seller workflows separate.
             </p>
           </div>
 
           <div className="login-card">
             <div className="login-card-head">
               <p className="eyebrow">Secure demo login</p>
-              <h2>Sign in</h2>
+              <div className="auth-switch">
+                <button
+                  className={authMode === "login" ? "auth-tab active" : "auth-tab"}
+                  onClick={() => {
+                    setAuthMode("login");
+                    setLoginError("");
+                    setSignupError("");
+                  }}
+                  type="button"
+                >
+                  Login
+                </button>
+                <button
+                  className={authMode === "signup" ? "auth-tab active" : "auth-tab"}
+                  onClick={() => {
+                    setAuthMode("signup");
+                    setLoginError("");
+                    setSignupError("");
+                  }}
+                  type="button"
+                >
+                  Sign up
+                </button>
+              </div>
             </div>
 
-            <form className="login-form" onSubmit={handleLogin}>
-              <label>
-                Email
-                <input
-                  placeholder="buyer@aasamedchem.test"
-                  type="email"
-                  value={loginEmail}
-                  onChange={(event) => setLoginEmail(event.target.value)}
-                />
-              </label>
+            {authMode === "login" ? (
+              <form className="login-form" onSubmit={handleLogin}>
+                <label>
+                  Email
+                  <input
+                    placeholder="buyer@aasamedchem.test"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                  />
+                </label>
 
-              <label>
-                Password
-                <input
-                  placeholder="Password"
-                  type="password"
-                  value={loginPassword}
-                  onChange={(event) => setLoginPassword(event.target.value)}
-                />
-              </label>
+                <label>
+                  Password
+                  <input
+                    placeholder="Your password"
+                    type="password"
+                    value={loginPassword}
+                    onChange={(event) => setLoginPassword(event.target.value)}
+                  />
+                </label>
 
-              {loginError ? <p className="login-error">{loginError}</p> : null}
+                {loginError ? <p className="login-error">{loginError}</p> : null}
 
-              <button className="primary-button" type="submit">
-                Login
-              </button>
-            </form>
+                <button className="primary-button" type="submit">
+                  Login
+                </button>
+
+                <p className="helper-copy">
+                  Need an account? Switch to sign up. Admin login is issued only
+                  from the backend.
+                </p>
+
+                <div className="demo-note">
+                  <span>Admin: admin@aasamedchem.test / Admin@123</span>
+                  <span>Seller: seller@aasamedchem.test / Seller@123</span>
+                  <span>Buyer: buyer@aasamedchem.test / Buyer@123</span>
+                </div>
+              </form>
+            ) : (
+              <form className="login-form" onSubmit={handleSignup}>
+                <label>
+                  Full name
+                  <input
+                    placeholder="Asha Roy"
+                    value={signupName}
+                    onChange={(event) => setSignupName(event.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Email
+                  <input
+                    placeholder="name@example.com"
+                    type="email"
+                    value={signupEmail}
+                    onChange={(event) => setSignupEmail(event.target.value)}
+                  />
+                </label>
+
+                <div className="quantity-row">
+                  <label>
+                    Role
+                    <select
+                      value={signupRole}
+                      onChange={(event) =>
+                        setSignupRole(event.target.value as Exclude<Role, "admin">)
+                      }
+                    >
+                      <option value="buyer">Buyer</option>
+                      <option value="seller">Seller</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Account type
+                    <input disabled value="Buyer / Seller only" />
+                  </label>
+                </div>
+
+                <label>
+                  Password
+                  <input
+                    placeholder="Create a strong password"
+                    type="password"
+                    value={signupPassword}
+                    onChange={(event) => setSignupPassword(event.target.value)}
+                  />
+                </label>
+
+                <label>
+                  Confirm password
+                  <input
+                    placeholder="Re-enter password"
+                    type="password"
+                    value={signupConfirmPassword}
+                    onChange={(event) => setSignupConfirmPassword(event.target.value)}
+                  />
+                </label>
+
+                {signupError ? <p className="login-error">{signupError}</p> : null}
+
+                <button className="primary-button" type="submit">
+                  Create account
+                </button>
+
+                <p className="helper-copy">
+                  Admin access is not available here. Buyers and sellers can
+                  create accounts directly.
+                </p>
+              </form>
+            )}
           </div>
 
           <div className="feature-strip">

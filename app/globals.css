@@ -116,10 +116,29 @@ select {
   gap: 6px;
 }
 
-.login-card-head h2 {
-  font-size: 28px;
-  line-height: 1.05;
-  margin: 0;
+.auth-switch {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-tab {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  min-height: 42px;
+  text-transform: uppercase;
+}
+
+.auth-tab.active {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
 }
 
 .login-badges {
@@ -152,6 +171,23 @@ select {
   color: #8f2f28;
   margin: 0;
   padding: 12px 14px;
+}
+
+.helper-copy {
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.demo-note {
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+  padding: 14px 16px;
 }
 
 .feature-strip {
@@ -459,6 +495,12 @@ input::placeholder {
   color: #9a9383;
 }
 
+input:disabled {
+  background: rgba(236, 230, 219, 0.8);
+  color: #7a7166;
+  cursor: not-allowed;
+}
+
 input:focus,
 select:focus,
 button:focus-visible {
@@ -667,7 +709,7 @@ button:focus-visible {
   }
 
   .feature-strip,
-  .login-badges {
+  .auth-switch {
     grid-template-columns: 1fr;
   }
 
