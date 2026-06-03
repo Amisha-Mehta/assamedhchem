@@ -136,10 +136,16 @@ function getRoleFromEmail(email: string): Role {
   return "buyer";
 }
 
+function isStrongPassword(password: string) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+}
+
 export default function Home() {
   const [loggedInRole, setLoggedInRole] = useState<Role>("buyer");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [products, setProducts] = useState<Product[]>(starterProducts);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(starterProducts[0].id);
@@ -187,9 +193,18 @@ export default function Home() {
     event.preventDefault();
 
     if (!loginEmail.trim()) {
+      setLoginError("Enter your email address.");
       return;
     }
 
+    if (!isStrongPassword(loginPassword)) {
+      setLoginError(
+        "Password must have upper case, lower case, a number, a special character, and at least 8 characters.",
+      );
+      return;
+    }
+
+    setLoginError("");
     const nextRole = getRoleFromEmail(loginEmail);
     setLoggedInRole(nextRole);
     setIsLoggedIn(true);
@@ -209,6 +224,8 @@ export default function Home() {
   function logout() {
     setIsLoggedIn(false);
     setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
     setLoggedInRole("buyer");
   }
 
@@ -321,51 +338,112 @@ export default function Home() {
     return (
       <main className="login-shell">
         <section className="login-panel">
-          <div>
+          <div className="login-copy-block">
             <p className="eyebrow">AasaMedChem Inventory</p>
-            <h1>Sign in to open your dashboard</h1>
+            <h1>One sign-in, three dashboards</h1>
             <p className="login-copy">
-              One login page routes users automatically by email. Use an admin,
-              seller, or buyer email to enter the correct dashboard.
+              The email decides the role. A buyer lands on products, a seller
+              lands on listings, and an admin lands on oversight.
             </p>
+
+            <div className="login-feature-list">
+              <div>
+                <strong>Buyer</strong>
+                <span>Search, compare, and order products with unit conversion.</span>
+              </div>
+              <div>
+                <strong>Seller</strong>
+                <span>Create listings, track stock, and review incoming requests.</span>
+              </div>
+              <div>
+                <strong>Admin</strong>
+                <span>Edit anything, deactivate listings, and review all orders.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="login-visual">
+            <div className="visual-card visual-card-main">
+              <span className="visual-kicker">Live conversion</span>
+              <strong>2 kg Sodium Chloride</strong>
+              <div className="conversion-line">
+                <span>Buyer input</span>
+                <span>2 kg</span>
+              </div>
+              <div className="conversion-line">
+                <span>Stored as</span>
+                <span>2000 g</span>
+              </div>
+              <div className="conversion-line total">
+                <span>Total</span>
+                <span>INR 1,700.00</span>
+              </div>
+            </div>
+
+            <div className="visual-grid">
+              <div className="visual-card">
+                <span className="visual-kicker">Buyer</span>
+                <strong>Search and order</strong>
+                <small>Find products, pick a unit, and place a quotation.</small>
+              </div>
+              <div className="visual-card">
+                <span className="visual-kicker">Seller</span>
+                <strong>List inventory</strong>
+                <small>Set quantity, unit, and INR price per base unit.</small>
+              </div>
+              <div className="visual-card">
+                <span className="visual-kicker">Admin</span>
+                <strong>Full oversight</strong>
+                <small>Search, edit, and manage the whole catalog.</small>
+              </div>
+            </div>
           </div>
 
           <form className="login-form" onSubmit={handleLogin}>
             <label>
               Email address
               <input
-                placeholder="admin@aasamedchem.com"
+                placeholder="name@aasamedchem.com"
                 type="email"
                 value={loginEmail}
                 onChange={(event) => setLoginEmail(event.target.value)}
               />
             </label>
+
+            <label>
+              Password
+              <input
+                placeholder="Enter a strong password"
+                type="password"
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+              />
+            </label>
+
+            <div className="password-rules">
+              <span className={/[A-Z]/.test(loginPassword) ? "rule ok" : "rule"}>
+                One uppercase letter
+              </span>
+              <span className={/[a-z]/.test(loginPassword) ? "rule ok" : "rule"}>
+                One lowercase letter
+              </span>
+              <span className={/\d/.test(loginPassword) ? "rule ok" : "rule"}>
+                One number
+              </span>
+              <span className={/[^A-Za-z0-9]/.test(loginPassword) ? "rule ok" : "rule"}>
+                One special character
+              </span>
+              <span className={loginPassword.length >= 8 ? "rule ok" : "rule"}>
+                Minimum 8 characters
+              </span>
+            </div>
+
+            {loginError ? <p className="login-error">{loginError}</p> : null}
+
             <button className="primary-button" type="submit">
-              Continue
+              Sign in
             </button>
           </form>
-
-          <div className="login-examples">
-            <span>Try these emails:</span>
-            <button
-              type="button"
-              onClick={() => setLoginEmail("buyer@aasamedchem.com")}
-            >
-              buyer@aasamedchem.com
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginEmail("seller@aasamedchem.com")}
-            >
-              seller@aasamedchem.com
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginEmail("admin@aasamedchem.com")}
-            >
-              admin@aasamedchem.com
-            </button>
-          </div>
         </section>
       </main>
     );

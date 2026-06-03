@@ -116,6 +116,13 @@ Open `http://localhost:3000`.
 - Seller: `seller@aasamedchem.test` / `Seller@123`
 - Buyer: `buyer@aasamedchem.test` / `Buyer@123`
 
+## Login Policy
+
+- The login page uses a single email and password form.
+- The email decides the role after sign-in.
+- Passwords must include uppercase, lowercase, a number, a special character, and at least 8 characters.
+- Example email buttons are not shown on the page anymore.
+
 ## Role Flows
 
 - Buyer: Login with a buyer email and land directly on the Buyer Dashboard to search products, choose quantities and units, and place a quotation or order.
