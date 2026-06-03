@@ -123,9 +123,16 @@ export default function Home() {
   const [loggedInName, setLoggedInName] = useState("Buyer");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [signupRole, setSignupRole] = useState<Exclude<Role, "admin">>("buyer");
+  const [signupError, setSignupError] = useState("");
   const [products, setProducts] = useState<Product[]>(starterProducts);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(starterProducts[0].id);
@@ -257,10 +264,8 @@ export default function Home() {
       return;
     }
 
-    if (!isValidStrongPassword(loginPassword)) {
-      setLoginError(
-        "Password must have upper case, lower case, a number, a special character, and at least 8 characters.",
-      );
+    if (!loginPassword.trim()) {
+      setLoginError("Enter your password.");
       return;
     }
 
@@ -290,6 +295,67 @@ export default function Home() {
         await loadDashboardData(nextRole);
       } catch (error) {
         setLoginError(error instanceof Error ? error.message : "Login failed.");
+      } finally {
+        setSessionChecked(true);
+      }
+    })();
+  }
+
+  function handleSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!signupName.trim()) {
+      setSignupError("Enter your full name.");
+      return;
+    }
+
+    if (!signupEmail.trim()) {
+      setSignupError("Enter your email address.");
+      return;
+    }
+
+    if (!isValidStrongPassword(signupPassword)) {
+      setSignupError(
+        "Password must have upper case, lower case, a number, a special character, and at least 8 characters.",
+      );
+      return;
+    }
+
+    if (signupPassword !== signupConfirmPassword) {
+      setSignupError("Passwords do not match.");
+      return;
+    }
+
+    void (async () => {
+      try {
+        const data = await apiRequest<{
+          user: { id: string; name: string; email: string; role: Role };
+        }>("/api/auth/signup", {
+          method: "POST",
+          body: JSON.stringify({
+            name: signupName,
+            email: signupEmail,
+            password: signupPassword,
+            role: signupRole,
+          }),
+        });
+
+        const nextRole = data.user.role;
+
+        setSignupError("");
+        setLoginError("");
+        setLoggedInRole(nextRole);
+        setLoggedInName(data.user.name);
+        setIsLoggedIn(true);
+        setBuyerName(data.user.name);
+        setLoginEmail(data.user.email);
+        setSellerProduct((currentProduct) => ({
+          ...currentProduct,
+          listedBy: data.user.name,
+        }));
+        await loadDashboardData(nextRole);
+      } catch (error) {
+        setSignupError(error instanceof Error ? error.message : "Signup failed.");
       } finally {
         setSessionChecked(true);
       }
@@ -422,11 +488,11 @@ export default function Home() {
       <main className="login-shell">
         <section className="login-panel">
           <div className="login-copy-block">
-            <p className="eyebrow">AasaMedChem Inventory</p>
-            <h1>Checking your secure session</h1>
+            <p className="eyebrow eyebrow-chip">Secure session</p>
+            <h1>AasaMedChem</h1>
             <p className="login-copy">
-              We are restoring your dashboard and loading product data from the
-              database.
+              Restoring your dashboard and loading the latest product data from
+              the database.
             </p>
           </div>
         </section>
@@ -439,111 +505,67 @@ export default function Home() {
       <main className="login-shell">
         <section className="login-panel">
           <div className="login-copy-block">
-            <p className="eyebrow">AasaMedChem Inventory</p>
-            <h1>One sign-in, three dashboards</h1>
+            <p className="eyebrow eyebrow-chip">AasaMedChem Assignment</p>
+            <h1>Inventory and quotation management for lab products.</h1>
             <p className="login-copy">
-              The email decides the role. A buyer lands on products, a seller
-              lands on listings, and an admin lands on oversight.
+              Search chemicals and consumables, quote flexible units like kg or
+              L, and let admins verify every conversion against stored base
+              quantities.
             </p>
-
-            <div className="login-feature-list">
-              <div>
-                <strong>Buyer</strong>
-                <span>Search, compare, and order products with unit conversion.</span>
-              </div>
-              <div>
-                <strong>Seller</strong>
-                <span>Create listings, track stock, and review incoming requests.</span>
-              </div>
-              <div>
-                <strong>Admin</strong>
-                <span>Edit anything, deactivate listings, and review all orders.</span>
-              </div>
-            </div>
           </div>
 
-          <div className="login-visual">
-            <div className="visual-card visual-card-main">
-              <span className="visual-kicker">Live conversion</span>
-              <strong>2 kg Sodium Chloride</strong>
-              <div className="conversion-line">
-                <span>Buyer input</span>
-                <span>2 kg</span>
-              </div>
-              <div className="conversion-line">
-                <span>Stored as</span>
-                <span>2000 g</span>
-              </div>
-              <div className="conversion-line total">
-                <span>Total</span>
-                <span>INR 1,700.00</span>
-              </div>
+          <div className="login-card">
+            <div className="login-card-head">
+              <p className="eyebrow">Secure demo login</p>
+              <h2>Sign in</h2>
             </div>
 
-            <div className="visual-grid">
-              <div className="visual-card">
-                <span className="visual-kicker">Buyer</span>
-                <strong>Search and order</strong>
-                <small>Find products, pick a unit, and place a quotation.</small>
-              </div>
-              <div className="visual-card">
-                <span className="visual-kicker">Seller</span>
-                <strong>List inventory</strong>
-                <small>Set quantity, unit, and INR price per base unit.</small>
-              </div>
-              <div className="visual-card">
-                <span className="visual-kicker">Admin</span>
-                <strong>Full oversight</strong>
-                <small>Search, edit, and manage the whole catalog.</small>
-              </div>
-            </div>
+            <form className="login-form" onSubmit={handleLogin}>
+              <label>
+                Email
+                <input
+                  placeholder="buyer@aasamedchem.test"
+                  type="email"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                />
+              </label>
+
+              <label>
+                Password
+                <input
+                  placeholder="Password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                />
+              </label>
+
+              {loginError ? <p className="login-error">{loginError}</p> : null}
+
+              <button className="primary-button" type="submit">
+                Login
+              </button>
+            </form>
           </div>
 
-          <form className="login-form" onSubmit={handleLogin}>
-            <label>
-              Email address
-              <input
-                placeholder="name@aasamedchem.com"
-                type="email"
-                value={loginEmail}
-                onChange={(event) => setLoginEmail(event.target.value)}
-              />
-            </label>
-
-            <label>
-              Password
-              <input
-                placeholder="Enter a strong password"
-                type="password"
-                value={loginPassword}
-                onChange={(event) => setLoginPassword(event.target.value)}
-              />
-            </label>
-
-            <div className="password-rules">
-              <span className={/[A-Z]/.test(loginPassword) ? "rule ok" : "rule"}>
-                One uppercase letter
-              </span>
-              <span className={/[a-z]/.test(loginPassword) ? "rule ok" : "rule"}>
-                One lowercase letter
-              </span>
-              <span className={/\d/.test(loginPassword) ? "rule ok" : "rule"}>
-                One number
-              </span>
-              <span className={/[^A-Za-z0-9]/.test(loginPassword) ? "rule ok" : "rule"}>
-                One special character
-              </span>
-              <span className={loginPassword.length >= 8 ? "rule ok" : "rule"}>
-                Minimum 8 characters
-              </span>
+          <div className="feature-strip">
+            <div className="feature-card">
+              <span>01 /</span>
+              <strong>Base-unit storage</strong>
+              <p>Weight lives in grams, volume in milliliters, and count in units.</p>
             </div>
-
-            {loginError ? <p className="login-error">{loginError}</p> : null}
-
-            <button className="primary-button" type="submit">
-              Sign in
-            </button>
-          </form>
+            <div className="feature-card">
+              <span>02 /</span>
+              <strong>INR pricing</strong>
+              <p>Rates stay stored per base unit as precise PostgreSQL numeric values.</p>
+            </div>
+            <div className="feature-card">
+              <span>03 /</span>
+              <strong>Role panels</strong>
+              <p>Admins manage inventory and orders, while sellers place quotations.</p>
+            </div>
+          </div>
         </section>
       </main>
     );
