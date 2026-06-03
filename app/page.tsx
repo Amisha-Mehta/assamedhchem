@@ -17,6 +17,17 @@ type Product = {
   availableQuantity: number;
 };
 
+type Order = {
+  id: number;
+  productName: string;
+  buyerQuantity: number;
+  buyerUnit: Unit;
+  convertedQuantity: number;
+  baseUnit: Unit;
+  totalPrice: number;
+  status: "Quotation";
+};
+
 const starterProducts: Product[] = [
   {
     id: 1,
@@ -99,6 +110,8 @@ export default function Home() {
   const [selectedProductId, setSelectedProductId] = useState(starterProducts[0].id);
   const [orderQuantity, setOrderQuantity] = useState("2");
   const [selectedUnit, setSelectedUnit] = useState<Unit>("kg");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [orders, setOrders] = useState<Order[]>([]);
   const [sellerProduct, setSellerProduct] = useState({
     name: "",
     category: "",
@@ -116,6 +129,10 @@ export default function Home() {
   const allowedUnits = unitsByDimension[selectedProduct.dimension];
   const numericQuantity = Number(orderQuantity) || 0;
   const sellerBaseUnits = unitsByDimension[sellerProduct.dimension];
+  const visibleProducts = products.filter((product) => {
+    const searchText = `${product.name} ${product.category} ${product.listedBy}`;
+    return searchText.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const orderPreview = useMemo(() => {
     const convertedQuantity = convertToBaseUnit(
@@ -179,28 +196,71 @@ export default function Home() {
     });
   }
 
+  function placeQuotation() {
+    if (!orderPreview.hasEnoughStock || numericQuantity <= 0) {
+      return;
+    }
+
+    const newOrder: Order = {
+      id: Date.now(),
+      productName: selectedProduct.name,
+      buyerQuantity: numericQuantity,
+      buyerUnit: selectedUnit,
+      convertedQuantity: orderPreview.convertedQuantity,
+      baseUnit: selectedProduct.baseUnit,
+      totalPrice: orderPreview.totalPrice,
+      status: "Quotation",
+    };
+
+    setOrders((currentOrders) => [newOrder, ...currentOrders]);
+  }
+
   return (
     <main className="page-shell">
       <section className="top-bar">
         <div>
-          <p className="eyebrow">AasaMedChem assignment</p>
-          <h1>Inventory listing with visible unit conversion</h1>
+          <p className="eyebrow">AasaMedChem Inventory</p>
+          <h1>Chemical catalog, quotations, and unit conversion</h1>
         </div>
-        <div className="role-badge">Seller + Buyer flow</div>
+        <div className="role-badge">Live quotation desk</div>
+      </section>
+
+      <section className="summary-strip">
+        <div>
+          <span>Total products</span>
+          <strong>{products.length}</strong>
+        </div>
+        <div>
+          <span>Quotations placed</span>
+          <strong>{orders.length}</strong>
+        </div>
+        <div>
+          <span>Supported units</span>
+          <strong>g, kg, mL, L, unit</strong>
+        </div>
       </section>
 
       <section className="workspace-grid">
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Seller side</p>
-              <h2>Listed products</h2>
+              <p className="eyebrow">Catalog</p>
+              <h2>Available products</h2>
             </div>
             <span>{products.length} products</span>
           </div>
 
+          <label className="search-field">
+            Search products
+            <input
+              placeholder="Search by product, category, or seller"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </label>
+
           <div className="product-list">
-            {products.map((product) => (
+            {visibleProducts.map((product) => (
               <button
                 className={
                   product.id === selectedProduct.id
@@ -234,10 +294,10 @@ export default function Home() {
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Seller side</p>
-              <h2>List new product</h2>
+              <p className="eyebrow">Seller panel</p>
+              <h2>List product</h2>
             </div>
-            <span>Step 2</span>
+            <span>Inventory entry</span>
           </div>
 
           <form className="seller-form" onSubmit={addSellerProduct}>
@@ -362,8 +422,8 @@ export default function Home() {
         <div className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Buyer side</p>
-              <h2>Create order preview</h2>
+              <p className="eyebrow">Buyer panel</p>
+              <h2>Build quotation</h2>
             </div>
             <span>{selectedProduct.name}</span>
           </div>
@@ -453,6 +513,54 @@ export default function Home() {
               ? "Stock is available for this order."
               : "Order quantity is higher than available stock."}
           </div>
+
+          <button
+            className="primary-button quotation-button"
+            disabled={!orderPreview.hasEnoughStock || numericQuantity <= 0}
+            onClick={placeQuotation}
+            type="button"
+          >
+            Place quotation
+          </button>
+        </div>
+
+        <div className="panel orders-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Seller view</p>
+              <h2>Incoming quotations</h2>
+            </div>
+            <span>{orders.length} active</span>
+          </div>
+
+          {orders.length === 0 ? (
+            <div className="empty-state">
+              New quotations will appear here with buyer unit, converted unit,
+              and calculated INR total.
+            </div>
+          ) : (
+            <div className="order-list">
+              {orders.map((order) => (
+                <div className="order-row" key={order.id}>
+                  <div>
+                    <strong>{order.productName}</strong>
+                    <small>{order.status}</small>
+                  </div>
+                  <div>
+                    <span>
+                      Buyer: {formatQuantity(order.buyerQuantity)}{" "}
+                      {order.buyerUnit}
+                    </span>
+                    <span>
+                      Converted: {formatQuantity(order.convertedQuantity)}{" "}
+                      {order.baseUnit}
+                    </span>
+                    <strong>{formatMoney(order.totalPrice)}</strong>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </main>
