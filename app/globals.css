@@ -1,0 +1,275 @@
+:root {
+  --background: #f6f7f4;
+  --surface: #ffffff;
+  --surface-muted: #eef3ee;
+  --text: #18211b;
+  --muted: #667064;
+  --line: #d9e0d7;
+  --accent: #23745b;
+  --accent-dark: #175540;
+  --warning: #a05a14;
+  --warning-bg: #fff2dd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.top-bar {
+  align-items: end;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin: 0 auto 24px;
+  max-width: 1160px;
+}
+
+.top-bar h1,
+.panel h2 {
+  margin: 0;
+}
+
+.top-bar h1 {
+  font-size: clamp(30px, 5vw, 54px);
+  line-height: 1;
+  max-width: 760px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.role-badge {
+  background: var(--accent-dark);
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.workspace-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+  margin: 0 auto;
+  max-width: 1160px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.panel:first-child {
+  grid-row: span 2;
+}
+
+.panel-heading {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.panel-heading span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.product-list {
+  display: grid;
+  gap: 12px;
+}
+
+.product-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 92px;
+  padding: 16px;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+  width: 100%;
+}
+
+.product-row.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(35, 116, 91, 0.14);
+}
+
+.product-row strong,
+.product-row small {
+  display: block;
+}
+
+.product-row small {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.right-text {
+  text-align: right;
+}
+
+.seller-form,
+.order-form {
+  display: grid;
+  gap: 14px;
+}
+
+label {
+  color: var(--muted);
+  display: grid;
+  font-size: 14px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+input,
+select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  min-height: 44px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.primary-button {
+  background: var(--accent-dark);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  min-height: 46px;
+  padding: 12px 16px;
+  width: 100%;
+}
+
+.primary-button:hover {
+  background: var(--accent);
+}
+
+.quantity-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 140px;
+}
+
+.calculation-box {
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 1px;
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.calculation-box div {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.74);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 14px;
+}
+
+.calculation-box span {
+  color: var(--muted);
+}
+
+.calculation-box strong {
+  text-align: right;
+}
+
+.stock-note {
+  border-radius: 8px;
+  font-weight: 700;
+  margin-top: 14px;
+  padding: 12px 14px;
+}
+
+.stock-note.ok {
+  background: #e6f4eb;
+  color: var(--accent-dark);
+}
+
+.stock-note.warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+@media (max-width: 860px) {
+  .page-shell {
+    padding: 20px;
+  }
+
+  .top-bar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel:first-child {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .product-row,
+  .calculation-box div {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .right-text,
+  .calculation-box strong {
+    text-align: left;
+  }
+
+  .quantity-row {
+    grid-template-columns: 1fr;
+  }
+}
