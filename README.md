@@ -9,6 +9,7 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 - Buyer panel to search and filter products in real time, then place quotations or orders.
 - Buyer request flow when no product matches, so admins can see which buyer requested which product.
 - Seller panel to list products with name, SKU, quantity, unit dimension, stock, and INR pricing.
+- Seller panel to view their own published listings immediately after saving them.
 - Seller sales panel to view buyer orders for their own products.
 - Admin panel to search all products and sellers, create listings for any seller, edit or deactivate listings, review all orders, and review buyer product requests.
 - Flexible quantities in `g`, `kg`, `mL`, `L`, and `unit`.
@@ -21,7 +22,7 @@ A small inventory, seller listing, buyer ordering, and admin oversight app built
 - Database: Neon-hosted PostgreSQL via `@neondatabase/serverless`.
 - Auth: email/password login, PBKDF2 password hashes, signed cookie sessions.
 - Deployment: Vercel with `DATABASE_URL` and `AUTH_SECRET` environment variables.
-- Server actions validate roles, normalize units, calculate prices, and persist orders and listings in PostgreSQL.
+- API route handlers validate roles, normalize units, calculate prices, and persist orders, listings, and product requests in PostgreSQL.
 - Buyer requests are stored in a dedicated `product_requests` table and displayed in the admin dashboard.
 
 ## Database Schema
@@ -101,8 +102,8 @@ Prices are stored as INR per base unit:
 
 Conversions happen in `app/api/orders/route.ts` during order placement:
 
-- Buyer enters `requested_qty` and `requested_unit`.
-- The action validates the unit against the product dimension.
+- Buyer enters `requestedQty` and `requestedUnit`.
+- The route validates the unit against the product dimension.
 - Quantity converts to `base_qty`.
 - `line_total_inr = base_qty * price_per_base_unit_inr`.
 - Requested and base values are both stored for seller/admin audit.
@@ -148,7 +149,7 @@ Open `http://localhost:3000`.
 ## Role Flows
 
 - Buyer: Login with a buyer email and land directly on the Buyer Dashboard to search products, choose quantities and units, and place a quotation or order.
-- Seller: Login with a seller email and land directly on the Seller Dashboard to create product listings, manage active stock, and view sales requests.
+- Seller: Login with a seller email and land directly on the Seller Dashboard to create product listings, manage active stock, view their published listings, and view sales requests.
 - Admin: Login with an admin email and land directly on the Admin Dashboard to search all products and sellers, create or edit any seller listing, deactivate listings, and review all orders and statuses.
 - Buyer product requests that do not match any result are sent to admin with the buyer name and requested product.
 - Buyers can enter smaller divisible quantities like `100 g` for a `1 kg` rate and the app will convert to the internal base unit before pricing.

@@ -39,7 +39,14 @@ type Order = {
   baseUnit: Unit;
   ratePerBaseUnit: number;
   totalPrice: number;
-  status: "Placed" | "Confirmed" | "Cancelled";
+  status: "pending" | "approved" | "rejected" | "fulfilled";
+};
+
+const orderStatusLabels: Record<Order["status"], string> = {
+  pending: "Placed",
+  approved: "Confirmed",
+  rejected: "Cancelled",
+  fulfilled: "Fulfilled",
 };
 
 type ProductRequest = {
@@ -115,6 +122,35 @@ function formatQuantity(quantity: number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 4,
   }).format(quantity);
+}
+
+function normalizeOrderStatus(status: string): Order["status"] {
+  if (status === "pending" || status === "approved" || status === "rejected" || status === "fulfilled") {
+    return status;
+  }
+
+  if (status === "Placed") {
+    return "pending";
+  }
+
+  if (status === "Confirmed") {
+    return "approved";
+  }
+
+  if (status === "Cancelled") {
+    return "rejected";
+  }
+
+  return "pending";
+}
+
+function getOrderStatusOptions() {
+  return [
+    { value: "pending" as const, label: "Placed" },
+    { value: "approved" as const, label: "Confirmed" },
+    { value: "rejected" as const, label: "Cancelled" },
+    { value: "fulfilled" as const, label: "Fulfilled" },
+  ];
 }
 
 function blankSellerProduct() {
@@ -995,7 +1031,7 @@ export default function Home() {
             <div className="panel-heading">
               <div>
                 <p className="eyebrow">Seller dashboard</p>
-                <h2>List product</h2>
+                <h2>Publish and manage your stock</h2>
               </div>
               <span>Inventory entry</span>
             </div>
@@ -1145,6 +1181,50 @@ export default function Home() {
                 Publish product
               </button>
             </form>
+
+            <div className="unit-tip">
+              The products you publish below are stored in your own seller
+              account and will appear in the panel beside this form.
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">My listings</p>
+                <h2>Products published by you</h2>
+              </div>
+              <span>{products.length} items</span>
+            </div>
+
+            {products.length > 0 ? (
+              <div className="product-list">
+                {products.map((product) => (
+                  <div className="product-row seller-product-row" key={product.id}>
+                    <span>
+                      <strong>{product.name}</strong>
+                      <small>
+                        {product.sku} | {product.category} | listed by you
+                      </small>
+                    </span>
+                    <span className="right-text">
+                      <strong>
+                        {formatMoney(product.pricePerBaseUnit)} / {product.baseUnit}
+                      </strong>
+                      <small>
+                        Stock {formatQuantity(product.availableQuantity)}{" "}
+                        {product.baseUnit}
+                      </small>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                No products listed yet. Publish one above and it will appear
+                here instantly.
+              </div>
+            )}
           </div>
 
           <div className="panel">
@@ -1400,9 +1480,11 @@ function OrderList({
                 onStatusChange(order.id, event.target.value as Order["status"])
               }
             >
-              <option value="Placed">Placed</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Cancelled">Cancelled</option>
+              {getOrderStatusOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>

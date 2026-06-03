@@ -11,6 +11,26 @@ type OrderBody = {
   notes?: string;
 };
 
+function normalizeOrderStatus(status: string) {
+  if (status === "pending" || status === "approved" || status === "rejected" || status === "fulfilled") {
+    return status;
+  }
+
+  if (status === "Placed") {
+    return "pending";
+  }
+
+  if (status === "Confirmed") {
+    return "approved";
+  }
+
+  if (status === "Cancelled") {
+    return "rejected";
+  }
+
+  return "pending";
+}
+
 function parseOrder(row: {
   id: string;
   user_id: string;
@@ -37,7 +57,7 @@ function parseOrder(row: {
     baseUnit: row.base_unit,
     ratePerBaseUnit: Number(row.rate_per_base_unit),
     totalPrice: Number(row.total_price),
-    status: row.status,
+    status: normalizeOrderStatus(row.status),
   };
 }
 
